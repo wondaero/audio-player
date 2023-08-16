@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        .input-wrapper{
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .ro-player{
+            display :flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .ro-player canvas{
+            max-width: 800px;
+            max-height: 800px;
+            background: #eee;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="input-wrapper">
+        <input type="file" />
+    </div>
+    <div id="player" class="ro-player"></div>
+    
+
+    <script>
+        const audio = new Audio();
+       
+
+        const player = new AudioPlayer({
+            target: '#player',
+            playerSize: 300,
+            player: {
+                size: 300,
+                lineWidth: 4,
+                padding: 10,
+                trackColor: 'rgba(0, 0, 0, .2)',
+                color: '#f00'
+            },
+            thumbSize: 5,
+            handler: {
+                size: 20,
+                color: '#f00'
+            }
+        });
+
+        
+
+        function AudioPlayer(param){
+            const t = this;
+            t.raf = '';
+
+            t.curPercent = 0;
+            const qs = (trg) => document.querySelector(trg);
+            const qsa = (trgs) => document.querySelectorAll(trgs);
+            const degToRadi = (deg) => Math.PI / 180 * deg;
+            const perToDeg = (per) => 360 * per;    //100%는 1
+
+            const getRandomNum = (mn, mx) => Math.floor(Math.random() * (mx - mn + 1)) + mn;
+
+
+
+            const calcedR = (playerSize = 500, padding = 0, playerLineWidth = 4, handlerSize = 6) => {
+                return (playerSize * .5) - padding - (playerLineWidth > handlerSize ? (playerLineWidth * .5) : (handlerSize * .5));
+            };
+
+            t.resize = size => {
+
+
+                // const isSmaller = w > h + 100 ? h : w;
+                // const size = (parseInt(isSmaller / 100) > 9 ? 800 : parseInt(isSmaller / 100) * 100);
+
+                t.playerSize = size;
+                t.canvas.width = size || 300;
+                t.canvas.height = size || 300;
+            }
+
+            function constructor (obj) {
+                t.target = qs(obj.target);
+                t.player = obj.player;
+                t.handler = obj.handler;
+                t.playerSize = obj.playerSize;
+                t.thumbSize = obj.thumbSize;
+                
+
+                makeTag();
+                t.resize(obj.playerSize);
+                // draw();
+                drawBaseTrack();
+
+
+
+                qs('input').onchange = (e) => {
+                    console.log(e.target.files);
+
+                    audio.src = URL.createObjectURL(e.target.files[0]);
+                    audio.load();
+                    audio.play();
+
+                    const audioCtx = new AudioContext();
+                    audioSource = audioCtx.createMediaElementSource(audio);
+                    analyser = audioCtx.createAnalyser();
+                    audioSource.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                    analyser.fftSize = 128;
+
+                    const bufferLength = analyser.frequencyBinCount;
+
+                    const dataArray = new Uint8Array(bufferLength);
+
+
+
+                    animate();
+
+                    function animate(){
+                        t.ctx.clearRect(0, 0, t.player.size, t.player.size);
+
+                        analyser.getByteFrequencyData(dataArray);
+
+                        const centerX = centerY = t.player.size * .5;
+
+                        t.ctx.beginPath();
+
+                        for (let i = 0; i < bufferLength * 2; i++) {
+                            // const radius = i % 2 === 0 ? ((dataArray[i] / 10) + 80 || 80) : 80;
+                            const radius = i % 2 === 0 ? ((dataArray[i] / 10) + 80 || 80) : 80;
+                            const angle = (i * Math.PI) / bufferLength;
+
+                            const x = centerX + radius * Math.cos(angle);
+                            const y = centerY + radius * Math.sin(angle);
+
+                            t.ctx.lineTo(x, y);
+                        }
+                        t.ctx.closePath();
+                        t.ctx.lineWidth = 1;
+                        t.ctx.strokeStyle = 'gold';
+                        t.ctx.stroke();
+
+                        window.requestAnimationFrame(animate);
+                        
+                    }
+                }
+
+            }
+
+            function makeTag(){
+                const canvas = document.createElement('canvas');
+                const btns = document.createElement('div');
+
+                t.canvas = canvas;
+                t.btns = btns;
+                t.ctx = t.canvas.getContext('2d');
+
+                t.target.append(canvas);
+                t.target.append(btns);
+            }
+
+            function clearRect(){
+                t.ctx.clearRect(0, 0, t.playerSize, t.playerSize);
+            }
+            
+            function drawBaseTrack(){
+                t.ctx.beginPath();
+                t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                const half = t.player.size * .5;
+                t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(1)), false);
+                t.ctx.lineWidth = t.player.lineWidth || 4;
+                t.ctx.strokeStyle = t.player.trackColor || 'rgba(0, 255, 0, .2)';
+                t.ctx.stroke();
+            }
+
+            t.drawProgress = (per) => {
+                t.ctx.beginPath();
+                t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                const half = t.playerSize * .5;
+                t.ctx.translate(half, half);
+                t.ctx.rotate(degToRadi(-90));
+                t.ctx.arc(0, 0, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(per)), false);
+                t.ctx.lineWidth = t.player.lineWidth || 4;
+                t.ctx.strokeStyle = t.player.color || '#000';
+                t.ctx.stroke();
+            };
+
+            t.drawHandler = (per) => {
+                const half = t.playerSize * .5;
+                const trackRadius = calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size);
+                const calced = val => val * trackRadius + half;
+
+                t.ctx.beginPath();
+                t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                t.ctx.arc(calced(Math.sin(degToRadi(perToDeg(per)))), t.playerSize - calced(Math.cos(degToRadi(perToDeg(per)))), (t.handler.size * .5), 0, degToRadi(perToDeg(1)), false);
+                t.ctx.fillStyle = t.handler.color || '#000';
+                t.ctx.fill();
+            }
+
+            t.drawEffect = (data) => {
+                const half = t.playerSize * .5;
+                t.ctx.beginPath();
+                t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                t.ctx.arc(half, half, getRandomNum(100, 120), 0, degToRadi(perToDeg(1)), false);
+                t.ctx.fillStyle = 'rgba(255, 0, 0, .2)';
+                t.ctx.fill();
+                t.ctx.beginPath();
+                t.ctx.arc(half, half, getRandomNum(50, 90), 0, degToRadi(perToDeg(1)), false);
+                t.ctx.fillStyle = 'rgba(255, 0, 0, .5)';
+                t.ctx.fill();
+
+
+            }
+
+            t.play = (per) => {
+                t.ctx.beginPath();
+                t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                clearRect();
+                drawBaseTrack();
+                t.drawProgress(per);
+                t.drawHandler(per);
+                t.drawEffect(per);
+            }
+            
+            constructor(param);
+        }
+
+        
+    </script>
+</body>
+</html>
