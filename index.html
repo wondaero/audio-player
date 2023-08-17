@@ -6,9 +6,13 @@
     <title>Document</title>
 
     <style>
+        html, body{
+            background: #000;
+        }
         .input-wrapper{
             text-align: center;
             margin-bottom: 10px;
+            color: #fff;
         }
         .ro-player{
             display :flex;
@@ -19,7 +23,7 @@
         .ro-player canvas{
             max-width: 800px;
             max-height: 800px;
-            background: #eee;
+            background: #000;
         }
 
     </style>
@@ -129,23 +133,54 @@
 
                         t.ctx.beginPath();
 
-                        for (let i = 0; i < bufferLength * 2; i++) {
-                            // const radius = i % 2 === 0 ? ((dataArray[i] / 10) + 80 || 80) : 80;
-                            const radius = i % 2 === 0 ? ((dataArray[i] / 10) + 80 || 80) : 80;
-                            const angle = (i * Math.PI) / bufferLength;
+                        // for (let i = 0; i < bufferLength * 2; i++) {
+                        //     const radius = i % 2 === 0 ? ((dataArray[i] / 10) + 80 || 80) : 80;
+                        //     // let radius;
+                        //     // if(i !== 0){
+                        //     //     radius = i % 2 === 0 ? (dataArray[i / 2] / 10) + 80 : 80;
+                        //     // }else{
+                        //     //     radius = ((dataArray[i] / 10) + 80) || 80;
+                                
+                        //     // }
 
-                            const x = centerX + radius * Math.cos(angle);
-                            const y = centerY + radius * Math.sin(angle);
 
-                            t.ctx.lineTo(x, y);
-                        }
-                        t.ctx.closePath();
+                        //     const angle = (i * Math.PI) / bufferLength;
+    
+                        //     const x = centerX + radius * Math.cos(angle);
+                        //     const y = centerY + radius * Math.sin(angle);
+
+                        //     t.ctx.lineTo(x, y);
+                        // }
+                        // t.ctx.closePath();
+                        // t.ctx.lineWidth = 1;
+                        // t.ctx.strokeStyle = 'red';
+                        // t.ctx.stroke();
+
+
+                        t.ctx.beginPath();
+                        t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        const half = t.player.size * .5;
+                        t.ctx.arc(half, half, (dataArray[0] / 10) + 80, 0, degToRadi(perToDeg(1)), false);
                         t.ctx.lineWidth = 1;
-                        t.ctx.strokeStyle = 'gold';
+                        // t.ctx.strokeStyle = 'rgba(0, 255, 255, 1)';
+                        // t.ctx.stroke();
+                        t.ctx.fillStyle = 'rgba(0, 255, 255, .5)';
+                        t.ctx.fill();
+
+                        t.ctx.beginPath();
+                        t.ctx.arc(half, half, 80, 0, degToRadi(perToDeg(1)), false);
+                        // t.ctx.fillStyle = 'rgba(0, 255, 255, .5)';
+                        // t.ctx.fill();
+                        t.ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
                         t.ctx.stroke();
 
+
+                        t.ctx.beginPath();
+                        t.ctx.arc(half, half, (dataArray[0] / 10) + 40, 0, degToRadi(perToDeg(1)), false);
+                        t.ctx.fillStyle = 'rgba(0, 255, 255, 1)';
+                        t.ctx.fill();
+
                         window.requestAnimationFrame(animate);
-                        
                     }
                 }
 
