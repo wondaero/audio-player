@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-
+    <title>Rodio player</title>
     <style>
         html, body{
             background: #000;
@@ -25,7 +24,6 @@
             max-height: 800px;
             background: #000;
         }
-
     </style>
 </head>
 <body>
@@ -46,7 +44,7 @@
                 size: 300,
                 lineWidth: 4,
                 padding: 10,
-                trackColor: 'rgba(0, 0, 0, .2)',
+                trackColor: 'rgba(255, 255, 255, .2)',
                 color: '#f00'
             },
             thumbSize: 5,
@@ -103,84 +101,71 @@
 
 
                 qs('input').onchange = (e) => {
-                    console.log(e.target.files);
 
                     audio.src = URL.createObjectURL(e.target.files[0]);
                     audio.load();
-                    audio.play();
+                    
+                    audio.onloadeddata = () => {
+                        console.log(audio.duration);
+                        audio.play();
 
-                    const audioCtx = new AudioContext();
-                    audioSource = audioCtx.createMediaElementSource(audio);
-                    analyser = audioCtx.createAnalyser();
-                    audioSource.connect(analyser);
-                    analyser.connect(audioCtx.destination);
-                    analyser.fftSize = 128;
+                        const audioCtx = new AudioContext();
+                        audioSource = audioCtx.createMediaElementSource(audio);
+                        analyser = audioCtx.createAnalyser();
+                        audioSource.connect(analyser);
+                        analyser.connect(audioCtx.destination);
+                        analyser.fftSize = 128;
 
-                    const bufferLength = analyser.frequencyBinCount;
+                        const bufferLength = analyser.frequencyBinCount;
 
-                    const dataArray = new Uint8Array(bufferLength);
+                        t.soundData = new Uint8Array(bufferLength);
+                        // const dataArray = new Uint8Array(bufferLength);
+
+                        animate();
+                    };
+
+
+                    
 
 
 
-                    animate();
+
 
                     function animate(){
                         t.ctx.clearRect(0, 0, t.player.size, t.player.size);
-
-                        analyser.getByteFrequencyData(dataArray);
-
-                        const centerX = centerY = t.player.size * .5;
+                        t.play(audio.currentTime / audio.duration);
+                        
+                        analyser.getByteFrequencyData(t.soundData);
 
                         t.ctx.beginPath();
 
-                        // for (let i = 0; i < bufferLength * 2; i++) {
-                        //     const radius = i % 2 === 0 ? ((dataArray[i] / 10) + 80 || 80) : 80;
-                        //     // let radius;
-                        //     // if(i !== 0){
-                        //     //     radius = i % 2 === 0 ? (dataArray[i / 2] / 10) + 80 : 80;
-                        //     // }else{
-                        //     //     radius = ((dataArray[i] / 10) + 80) || 80;
-                                
-                        //     // }
+                        const dataArray2 = t.soundData.filter(x => x !== 0);
 
+                        const dLen = dataArray2.length;
+                        const half = t.playerSize * .5;
 
-                        //     const angle = (i * Math.PI) / bufferLength;
-    
-                        //     const x = centerX + radius * Math.cos(angle);
-                        //     const y = centerY + radius * Math.sin(angle);
+                        drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .3)`);
 
-                        //     t.ctx.lineTo(x, y);
+                        // for (let i = 0; i < dLen; i++) {
+                        //     drawLeft(degToRadi(perToDeg(dataArray2[i] / 255 * .5)), `hsl(${i * dLen}, 100%, 50%)`);
                         // }
-                        // t.ctx.closePath();
-                        // t.ctx.lineWidth = 1;
-                        // t.ctx.strokeStyle = 'red';
-                        // t.ctx.stroke();
+                        drawLeft(degToRadi(perToDeg(dataArray2[8] / 255 * .5)), `hsl(${8 * dLen}, 100%, 50%)`);
 
-
-                        t.ctx.beginPath();
-                        t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                        const half = t.player.size * .5;
-                        t.ctx.arc(half, half, (dataArray[0] / 10) + 80, 0, degToRadi(perToDeg(1)), false);
-                        t.ctx.lineWidth = 1;
-                        // t.ctx.strokeStyle = 'rgba(0, 255, 255, 1)';
-                        // t.ctx.stroke();
-                        t.ctx.fillStyle = 'rgba(0, 255, 255, .5)';
-                        t.ctx.fill();
-
-                        t.ctx.beginPath();
-                        t.ctx.arc(half, half, 80, 0, degToRadi(perToDeg(1)), false);
-                        // t.ctx.fillStyle = 'rgba(0, 255, 255, .5)';
-                        // t.ctx.fill();
-                        t.ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
-                        t.ctx.stroke();
-
-
-                        t.ctx.beginPath();
-                        t.ctx.arc(half, half, (dataArray[0] / 10) + 40, 0, degToRadi(perToDeg(1)), false);
-                        t.ctx.fillStyle = 'rgba(0, 255, 255, 1)';
-                        t.ctx.fill();
+                        function drawLeft(deg, color) {
+                            t.ctx.beginPath();
+                            t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            t.ctx.translate(half, half);
+                            t.ctx.rotate(degToRadi(90));
+                            t.ctx.translate(-half, -half);
+                            t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size) - (t.handler.size * 1), 0, deg, false);
+                            t.ctx.lineWidth = t.player.lineWidth || 4;
+                            t.ctx.strokeStyle = color;
+                            t.ctx.lineCap = 'butt';
+                            t.ctx.stroke();
+                        }
 
                         window.requestAnimationFrame(animate);
+
                     }
                 }
 
@@ -206,19 +191,24 @@
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 const half = t.player.size * .5;
-                t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(1)), false);
+                t.ctx.translate(half, half);
+                t.ctx.rotate(degToRadi(-90));
+                t.ctx.translate(-half, -half);
+                t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(.5)), false);
                 t.ctx.lineWidth = t.player.lineWidth || 4;
-                t.ctx.strokeStyle = t.player.trackColor || 'rgba(0, 255, 0, .2)';
+                t.ctx.strokeStyle = t.player.trackColor || 'rgba(255, 255, 255, .2)';
                 t.ctx.stroke();
+
             }
 
             t.drawProgress = (per) => {
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                const half = t.playerSize * .5;
+                const half = t.player.size * .5;
                 t.ctx.translate(half, half);
                 t.ctx.rotate(degToRadi(-90));
-                t.ctx.arc(0, 0, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(per)), false);
+                t.ctx.translate(-half, -half);
+                t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(per)), false);
                 t.ctx.lineWidth = t.player.lineWidth || 4;
                 t.ctx.strokeStyle = t.player.color || '#000';
                 t.ctx.stroke();
@@ -247,8 +237,6 @@
                 t.ctx.arc(half, half, getRandomNum(50, 90), 0, degToRadi(perToDeg(1)), false);
                 t.ctx.fillStyle = 'rgba(255, 0, 0, .5)';
                 t.ctx.fill();
-
-
             }
 
             t.play = (per) => {
@@ -258,7 +246,7 @@
                 drawBaseTrack();
                 t.drawProgress(per);
                 t.drawHandler(per);
-                t.drawEffect(per);
+                // t.drawEffect(per);
             }
             
             constructor(param);
