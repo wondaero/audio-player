@@ -60,13 +60,25 @@
             const t = this;
             t.raf = '';
 
+            t.rdmColor;
+
             t.curPercent = 0;
             const qs = (trg) => document.querySelector(trg);
             const qsa = (trgs) => document.querySelectorAll(trgs);
             const degToRadi = (deg) => Math.PI / 180 * deg;
             const perToDeg = (per) => 360 * per;    //100%는 1
 
+            const colorList = [
+                `rgba(255, 0, 0, `,
+                `rgba(0, 255, 0, `,
+                `rgba(255, 255, 0, `,
+                `rgba(255, 0, 255, `,
+                `rgba(0, 255, 255, `,
+            ];
+
             const getRandomNum = (mn, mx) => Math.floor(Math.random() * (mx - mn + 1)) + mn;
+
+            
 
 
 
@@ -91,13 +103,12 @@
                 t.handler = obj.handler;
                 t.playerSize = obj.playerSize;
                 t.thumbSize = obj.thumbSize;
-                
 
+                t.soundData = [];
+                
                 makeTag();
                 t.resize(obj.playerSize);
-                // draw();
-                drawBaseTrack();
-
+                t.play(0);
 
 
                 qs('input').onchange = (e) => {
@@ -106,8 +117,10 @@
                     audio.load();
                     
                     audio.onloadeddata = () => {
-                        console.log(audio.duration);
                         audio.play();
+
+                        t.rdmColor = colorList[getRandomNum(0, colorList.length - 1)];
+                        console.log(t.rdmColor);
 
                         const audioCtx = new AudioContext();
                         audioSource = audioCtx.createMediaElementSource(audio);
@@ -119,17 +132,9 @@
                         const bufferLength = analyser.frequencyBinCount;
 
                         t.soundData = new Uint8Array(bufferLength);
-                        // const dataArray = new Uint8Array(bufferLength);
 
                         animate();
                     };
-
-
-                    
-
-
-
-
 
                     function animate(){
                         t.ctx.clearRect(0, 0, t.player.size, t.player.size);
@@ -144,12 +149,15 @@
                         const dLen = dataArray2.length;
                         const half = t.playerSize * .5;
 
-                        drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .3)`);
+                        drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .2)`);
 
-                        // for (let i = 0; i < dLen; i++) {
-                        //     drawLeft(degToRadi(perToDeg(dataArray2[i] / 255 * .5)), `hsl(${i * dLen}, 100%, 50%)`);
-                        // }
-                        drawLeft(degToRadi(perToDeg(dataArray2[8] / 255 * .5)), `hsl(${8 * dLen}, 100%, 50%)`);
+                        let totalValue = 0;
+                        const totalCnt = dataArray2.length;
+
+                        dataArray2.forEach((el) => totalValue += el);
+
+                        // drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `rgba(0, 255, 255, ${totalValue / (totalCnt * 255)})`);
+                        drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `${t.rdmColor}${1 - (totalValue / (totalCnt * 255))})`);
 
                         function drawLeft(deg, color) {
                             t.ctx.beginPath();
@@ -157,15 +165,15 @@
                             t.ctx.translate(half, half);
                             t.ctx.rotate(degToRadi(90));
                             t.ctx.translate(-half, -half);
-                            t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size) - (t.handler.size * 1), 0, deg, false);
+                            t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size) - (t.handler.size), 0, deg, false);
                             t.ctx.lineWidth = t.player.lineWidth || 4;
                             t.ctx.strokeStyle = color;
                             t.ctx.lineCap = 'butt';
                             t.ctx.stroke();
                         }
 
-                        window.requestAnimationFrame(animate);
 
+                        t.raf = window.requestAnimationFrame(animate);
                     }
                 }
 
@@ -208,9 +216,10 @@
                 t.ctx.translate(half, half);
                 t.ctx.rotate(degToRadi(-90));
                 t.ctx.translate(-half, -half);
-                t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(per)), false);
+                t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(per * .5)), false);
                 t.ctx.lineWidth = t.player.lineWidth || 4;
-                t.ctx.strokeStyle = t.player.color || '#000';
+                // t.ctx.strokeStyle = t.player.color || '#000';
+                t.ctx.strokeStyle = `${t.rdmColor}${per})`;
                 t.ctx.stroke();
             };
 
@@ -221,22 +230,58 @@
 
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                t.ctx.arc(calced(Math.sin(degToRadi(perToDeg(per)))), t.playerSize - calced(Math.cos(degToRadi(perToDeg(per)))), (t.handler.size * .5), 0, degToRadi(perToDeg(1)), false);
-                t.ctx.fillStyle = t.handler.color || '#000';
+                t.ctx.arc(calced(Math.sin(degToRadi(perToDeg(per * .5)))), t.playerSize - calced(Math.cos(degToRadi(perToDeg(per * .5)))), (t.handler.size * .5), 0, degToRadi(perToDeg(1)), false);
+                // t.ctx.fillStyle = t.handler.color || '#000';
+                t.ctx.fillStyle = `rgba(0, 255, 255, 1)`;
+                t.ctx.fillStyle = t.rdmColor ? `${t.rdmColor}1)` : 'rgba(255, 255, 255, 1)';
                 t.ctx.fill();
             }
 
-            t.drawEffect = (data) => {
+            t.drawCenter = () => {
                 const half = t.playerSize * .5;
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                t.ctx.arc(half, half, getRandomNum(100, 120), 0, degToRadi(perToDeg(1)), false);
-                t.ctx.fillStyle = 'rgba(255, 0, 0, .2)';
+                const radius = (half - (t.handler.size * 4)) * (t.soundData[0] / 255);
+                t.ctx.arc(half, half, radius, 0, degToRadi(perToDeg(1)), false);
+                t.ctx.fillStyle = `${t.rdmColor}1)`;
                 t.ctx.fill();
                 t.ctx.beginPath();
-                t.ctx.arc(half, half, getRandomNum(50, 90), 0, degToRadi(perToDeg(1)), false);
-                t.ctx.fillStyle = 'rgba(255, 0, 0, .5)';
-                t.ctx.fill();
+                t.ctx.arc(half, half, half - (t.handler.size * 3),  0, degToRadi(perToDeg(1)), false);
+                t.ctx.strokeStyle = t.rdmColor ? `${t.rdmColor}1)` : 'rgba(255, 255, 255, .2)';
+                t.ctx.stroke();
+            }
+
+            t.visualizer = () => {  //아직안됨
+                t.ctx.beginPath();
+
+                const dataArray2 = t.soundData.filter(x => x !== 0);
+
+                const dLen = dataArray2.length;
+                const half = t.playerSize * .5;
+
+                drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .3)`);
+
+                let totalValue = 0;
+                const totalCnt = dataArray2.length;
+
+                dataArray2.forEach((el) => totalValue += el);
+
+                drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `rgba(0, 255, 255, ${totalValue / (totalCnt * 255)})`);
+
+                // console.log(dataArray2);
+
+                function drawLeft(deg, color) {
+                    t.ctx.beginPath();
+                    t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    t.ctx.translate(half, half);
+                    t.ctx.rotate(degToRadi(90));
+                    t.ctx.translate(-half, -half);
+                    t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size) - (t.handler.size), 0, deg, false);
+                    t.ctx.lineWidth = t.player.lineWidth || 4;
+                    t.ctx.strokeStyle = color;
+                    t.ctx.lineCap = 'butt';
+                    t.ctx.stroke();
+                }
             }
 
             t.play = (per) => {
@@ -246,7 +291,8 @@
                 drawBaseTrack();
                 t.drawProgress(per);
                 t.drawHandler(per);
-                // t.drawEffect(per);
+                t.drawCenter(per);
+                // t.visualizer();
             }
             
             constructor(param);
