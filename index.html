@@ -34,8 +34,8 @@
     
 
     <script>
+
         const audio = new Audio();
-       
 
         const player = new AudioPlayer({
             target: '#player',
@@ -113,6 +113,8 @@
 
                 qs('input').onchange = (e) => {
 
+                    
+
                     audio.src = URL.createObjectURL(e.target.files[0]);
                     audio.load();
                     
@@ -120,7 +122,6 @@
                         audio.play();
 
                         t.rdmColor = colorList[getRandomNum(0, colorList.length - 1)];
-                        console.log(t.rdmColor);
 
                         const audioCtx = new AudioContext();
                         audioSource = audioCtx.createMediaElementSource(audio);
@@ -141,37 +142,6 @@
                         t.play(audio.currentTime / audio.duration);
                         
                         analyser.getByteFrequencyData(t.soundData);
-
-                        t.ctx.beginPath();
-
-                        const dataArray2 = t.soundData.filter(x => x !== 0);
-
-                        const dLen = dataArray2.length;
-                        const half = t.playerSize * .5;
-
-                        drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .2)`);
-
-                        let totalValue = 0;
-                        const totalCnt = dataArray2.length;
-
-                        dataArray2.forEach((el) => totalValue += el);
-
-                        // drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `rgba(0, 255, 255, ${totalValue / (totalCnt * 255)})`);
-                        drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `${t.rdmColor}${1 - (totalValue / (totalCnt * 255))})`);
-
-                        function drawLeft(deg, color) {
-                            t.ctx.beginPath();
-                            t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                            t.ctx.translate(half, half);
-                            t.ctx.rotate(degToRadi(90));
-                            t.ctx.translate(-half, -half);
-                            t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size) - (t.handler.size), 0, deg, false);
-                            t.ctx.lineWidth = t.player.lineWidth || 4;
-                            t.ctx.strokeStyle = color;
-                            t.ctx.lineCap = 'butt';
-                            t.ctx.stroke();
-                        }
-
 
                         t.raf = window.requestAnimationFrame(animate);
                     }
@@ -239,19 +209,44 @@
 
             t.drawCenter = () => {
                 const half = t.playerSize * .5;
-                t.ctx.beginPath();
+                const dataArray2 = t.soundData.filter(x => x !== 0);
+
+                for(let i = 0; i < dataArray2.length; i++){
+                    t.ctx.beginPath();
+                    t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    t.ctx.beginPath();
+                    t.ctx.translate(half, half);
+                    t.ctx.rotate(degToRadi(i * 360 / dataArray2.length));
+                    // t.ctx.translate(-half, -half);
+                    const radius = (half - (t.handler.size * 5)) * (dataArray2[i] / 255);
+                    // const radius = (half - (t.handler.size * 5));
+                    // t.ctx.moveTo(-radius / 2, -radius / 2);
+                    t.ctx.moveTo(-radius, -radius);
+                    t.ctx.lineTo(radius, radius);
+                    t.ctx.lineWidth = 1;
+                    t.ctx.strokeStyle = `${t.rdmColor}${(i / dataArray2.length)})`;
+                    t.ctx.stroke();
+                }
+                // t.ctx.beginPath();
+                // t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                // const radius = (half - (t.handler.size * 4)) * (t.soundData[0] / 255);
+                // t.ctx.arc(half, half, radius, 0, degToRadi(perToDeg(1)), false);
+                // t.ctx.fillStyle = `${t.rdmColor}1)`;
+                // t.ctx.fill();
+
+
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                const radius = (half - (t.handler.size * 4)) * (t.soundData[0] / 255);
-                t.ctx.arc(half, half, radius, 0, degToRadi(perToDeg(1)), false);
-                t.ctx.fillStyle = `${t.rdmColor}1)`;
-                t.ctx.fill();
                 t.ctx.beginPath();
-                t.ctx.arc(half, half, half - (t.handler.size * 3),  0, degToRadi(perToDeg(1)), false);
+                t.ctx.translate(half, half);
+                t.ctx.rotate(degToRadi(90));
+                t.ctx.translate(-half, -half);
+                t.ctx.arc(half, half, half - (t.handler.size * 3),  0, degToRadi(perToDeg(1)), true);
                 t.ctx.strokeStyle = t.rdmColor ? `${t.rdmColor}1)` : 'rgba(255, 255, 255, .2)';
+                t.ctx.lineWidth = 4;
                 t.ctx.stroke();
             }
 
-            t.visualizer = () => {  //아직안됨
+            t.visualizer = () => {
                 t.ctx.beginPath();
 
                 const dataArray2 = t.soundData.filter(x => x !== 0);
@@ -259,14 +254,14 @@
                 const dLen = dataArray2.length;
                 const half = t.playerSize * .5;
 
-                drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .3)`);
+                drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .2)`);
 
                 let totalValue = 0;
                 const totalCnt = dataArray2.length;
 
                 dataArray2.forEach((el) => totalValue += el);
 
-                drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `rgba(0, 255, 255, ${totalValue / (totalCnt * 255)})`);
+                drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `${t.rdmColor}${totalValue / (totalCnt * 255)})`);
 
                 // console.log(dataArray2);
 
@@ -292,7 +287,7 @@
                 t.drawProgress(per);
                 t.drawHandler(per);
                 t.drawCenter(per);
-                // t.visualizer();
+                t.visualizer();
             }
             
             constructor(param);
