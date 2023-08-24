@@ -207,26 +207,51 @@
                 t.ctx.fill();
             }
 
-            t.drawCenter = () => {
+            t.drawCenter = (per) => {
                 const half = t.playerSize * .5;
                 const dataArray2 = t.soundData.filter(x => x !== 0);
 
-                for(let i = 0; i < dataArray2.length; i++){
-                    t.ctx.beginPath();
-                    t.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    t.ctx.beginPath();
-                    t.ctx.translate(half, half);
-                    t.ctx.rotate(degToRadi(i * 360 / dataArray2.length));
-                    // t.ctx.translate(-half, -half);
-                    const radius = (half - (t.handler.size * 5)) * (dataArray2[i] / 255);
-                    // const radius = (half - (t.handler.size * 5));
-                    // t.ctx.moveTo(-radius / 2, -radius / 2);
-                    t.ctx.moveTo(-radius, -radius);
-                    t.ctx.lineTo(radius, radius);
-                    t.ctx.lineWidth = 1;
-                    t.ctx.strokeStyle = `${t.rdmColor}${(i / dataArray2.length)})`;
-                    t.ctx.stroke();
+                const sides = 30;
+
+                t.ctx.beginPath();
+
+                t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                t.ctx.translate(half, half);
+                t.ctx.rotate(degToRadi(per * 360));
+                t.ctx.translate(-half, -half);
+
+                for (let i = 0; i < sides; i++) {
+                    const angle = (i * 2 * Math.PI) / sides;
+                    const radius = (half - (t.handler.size * 5)) * (dataArray2[getRandomNum(0, dataArray2.length - 1)] / 255);
+                    const x = half + radius * Math.cos(angle);
+                    const y = half + radius * Math.sin(angle);
+                    t.ctx[i === 0 ? 'moveTo' : 'lineTo'](x, y);
                 }
+                t.ctx.closePath();
+
+                t.ctx.lineWidth = 1;
+                t.ctx.strokeStyle = "rgba(255, 255, 255, .5)";
+                t.ctx.stroke();
+
+                // for(let i = 0; i < dataArray2.length; i++){
+                //     t.ctx.beginPath();
+                //     t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                //     t.ctx.beginPath();
+                //     t.ctx.translate(half, half);
+                //     t.ctx.rotate(degToRadi(i * 360 / dataArray2.length));
+                //     // t.ctx.translate(-half, -half);
+                //     const radius = (half - (t.handler.size * 5)) * (dataArray2[i] / 255);
+                //     // const radius = (half - (t.handler.size * 5));
+                //     // t.ctx.moveTo(-radius / 2, -radius / 2);
+                //     t.ctx.moveTo(-radius, -radius);
+                //     t.ctx.lineTo(radius, radius);
+                //     t.ctx.lineWidth = 1;
+                //     t.ctx.strokeStyle = `${t.rdmColor}${(i / dataArray2.length)})`;
+                //     t.ctx.stroke();
+                // }
+
+
+
                 // t.ctx.beginPath();
                 // t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 // const radius = (half - (t.handler.size * 4)) * (t.soundData[0] / 255);
