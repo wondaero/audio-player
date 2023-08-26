@@ -8,11 +8,10 @@
         html, body{
             background: #000;
         }
-        .input-wrapper{
-            text-align: center;
-            margin-bottom: 10px;
-            color: #fff;
+        .wrapper{
+
         }
+        
         .ro-player{
             display :flex;
             flex-wrap: wrap;
@@ -24,20 +23,141 @@
             max-height: 800px;
             background: #000;
         }
+
+        .menu{
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            transform: translateX(100%);
+            transition: transform .5s;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .menu.on{transform: translateX(0);}
+
+        .menu-btn{
+            position: absolute;
+            top: 0;
+            left: -40px;
+            /* background: red; */
+            width: 40px;
+            height: 42px;
+        }
+        .menu-btn span{
+            position: absolute;
+            width: 42px;
+            height: 2px;
+            background: #fff;
+            border-radius: 5px;
+            left: 10px;
+            transition: 1s;
+        }
+        .menu-btn span:nth-of-type(1){top: 10px;}
+        .menu-btn span:nth-of-type(2){top: 20px;}
+        .menu-btn span:nth-of-type(3){top: 30px;}
+        
+        .menu.on .menu-btn span:nth-of-type(1){top: 20px; transform: rotate(45deg);}
+        .menu.on .menu-btn span:nth-of-type(3){top: 20px; transform: rotate(-45deg);}
+        .menu.on .menu-btn span:nth-of-type(2){opacity: 0; left: -10px;}
+
+
+        .menu header{
+            padding-bottom: 10px;
+            border-bottom: 1px dashed rgba(0, 0, 0, .5);
+            margin-bottom: 10px;
+            text-align: right;
+        }
+        .input-wrapper{
+            display: inline-block;
+            vertical-align: top;
+        }
+        .input-wrapper input{
+            display: none;
+        }
+        .input-wrapper input + strong{
+            display: inline-block;
+            vertical-align: top;
+            position: relative;
+            width: 20px;
+            height: 20px;
+        }
+        .input-wrapper input + strong span{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: inline-block;
+            vertical-align: top;
+            background: #000;
+        }
+        .input-wrapper input + strong span:nth-of-type(1){width: 20px; height:2px;}
+        .input-wrapper input + strong span:nth-of-type(2){width: 2px; height:20px;}
+
+        .menu ul{
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .menu li{
+            margin-bottom: 5px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 20px 5px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+        }
+
+        @media (max-width: 761px) {
+            .menu{max-width: 320px;}
+        }
+        @media (max-width: 480px) {
+            .menu{max-width: 200px;}
+        }
+        
+
     </style>
 </head>
 <body>
-    <div class="input-wrapper">
-        <input type="file" />
+    <div class="wrapper">
+        <div id="player" class="ro-player"></div>
+        <aside id="menu" class="menu on">
+            <div id="menuBtn" class="menu-btn on" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <header>
+                <label class="input-wrapper">
+                    <input type="file" id="inputFile" />
+                    <strong>
+                        <span></span>
+                        <span></span>
+                    </strong>
+                </label>
+            </header>
+            <ul id="audioList"></ul>
+        </aside>
     </div>
-    <div id="player" class="ro-player"></div>
     
 
     <script>
+        const qs = trg => document.querySelector(trg);
+        const qsa = trgs => document.querySelector(trgs);
+        const state  = {
+            // menuOpen: false
+        }
+        function toggleMenu(){
+            qs('#menu').classList.toggle('on');
+        }
 
-        const audio = new Audio();
 
-        const player = new AudioPlayer({
+        const roAudioPlayer = new RoAudioPlayer({
             target: '#player',
             playerSize: 300,
             player: {
@@ -54,20 +174,27 @@
             }
         });
 
+        const roAudio = new RoAudio({
+            target: '#inputFile'
+        });
+
+        const audioList = new AudioList({
+            target: '#audioList',
+            fnc_click: () => {
+                roAudioPlayer.play2(roAudio.audioList, 0);
+                toggleMenu();
+            }
+        });
+
         
 
-        function AudioPlayer(param){
+        function RoAudioPlayer(param){
             const t = this;
-            t.raf = '';
-
-            t.rdmColor;
-
-            t.curPercent = 0;
             const qs = (trg) => document.querySelector(trg);
             const qsa = (trgs) => document.querySelectorAll(trgs);
             const degToRadi = (deg) => Math.PI / 180 * deg;
             const perToDeg = (per) => 360 * per;    //100%는 1
-
+            const getRandomNum = (mn, mx) => Math.floor(Math.random() * (mx - mn + 1)) + mn;
             const colorList = [
                 `rgba(255, 0, 0, `,
                 `rgba(0, 255, 0, `,
@@ -75,12 +202,10 @@
                 `rgba(255, 0, 255, `,
                 `rgba(0, 255, 255, `,
             ];
-
-            const getRandomNum = (mn, mx) => Math.floor(Math.random() * (mx - mn + 1)) + mn;
-
             
-
-
+            t.raf = '';
+            t.rdmColor;
+            t.curPercent = 0;
 
             const calcedR = (playerSize = 500, padding = 0, playerLineWidth = 4, handlerSize = 6) => {
                 return (playerSize * .5) - padding - (playerLineWidth > handlerSize ? (playerLineWidth * .5) : (handlerSize * .5));
@@ -111,40 +236,72 @@
                 t.play(0);
 
 
-                qs('input').onchange = (e) => {
-
+                // qs('input').onchange = (e) => {
+                //     audio.src = URL.createObjectURL(e.target.files[0]);
+                //     audio.load();
                     
+                //     audio.onloadeddata = () => {
+                //         audio.play();
 
-                    audio.src = URL.createObjectURL(e.target.files[0]);
-                    audio.load();
-                    
-                    audio.onloadeddata = () => {
-                        audio.play();
+                //         t.rdmColor = colorList[getRandomNum(0, colorList.length - 1)];
 
-                        t.rdmColor = colorList[getRandomNum(0, colorList.length - 1)];
+                //         const audioCtx = new AudioContext();
+                //         audioSource = audioCtx.createMediaElementSource(audio);
+                //         analyser = audioCtx.createAnalyser();
+                //         audioSource.connect(analyser);
+                //         analyser.connect(audioCtx.destination);
+                //         analyser.fftSize = 128;
 
-                        const audioCtx = new AudioContext();
-                        audioSource = audioCtx.createMediaElementSource(audio);
-                        analyser = audioCtx.createAnalyser();
-                        audioSource.connect(analyser);
-                        analyser.connect(audioCtx.destination);
-                        analyser.fftSize = 128;
+                //         const bufferLength = analyser.frequencyBinCount;
 
-                        const bufferLength = analyser.frequencyBinCount;
+                //         t.soundData = new Uint8Array(bufferLength);
 
-                        t.soundData = new Uint8Array(bufferLength);
+                //         animate();
+                //     };
 
-                        animate();
-                    };
-
-                    function animate(){
-                        t.ctx.clearRect(0, 0, t.player.size, t.player.size);
-                        t.play(audio.currentTime / audio.duration);
+                //     function animate(){
+                //         t.ctx.clearRect(0, 0, t.player.size, t.player.size);
+                //         t.play(audio.currentTime / audio.duration);
                         
-                        analyser.getByteFrequencyData(t.soundData);
+                //         analyser.getByteFrequencyData(t.soundData);
 
-                        t.raf = window.requestAnimationFrame(animate);
-                    }
+                //         t.raf = window.requestAnimationFrame(animate);
+                //     }
+                // }
+
+            }
+
+            t.play2 = (list, idx) => {
+                const audio = new Audio();
+                audio.src = URL.createObjectURL(list[idx]);
+                audio.load();
+                
+                audio.onloadeddata = () => {
+                    audio.play();
+
+                    t.rdmColor = colorList[getRandomNum(0, colorList.length - 1)];
+
+                    const audioCtx = new AudioContext();
+                    audioSource = audioCtx.createMediaElementSource(audio);
+                    analyser = audioCtx.createAnalyser();
+                    audioSource.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                    analyser.fftSize = 128;
+
+                    const bufferLength = analyser.frequencyBinCount;
+
+                    t.soundData = new Uint8Array(bufferLength);
+
+                    animate();
+                };
+
+                function animate(){
+                    t.ctx.clearRect(0, 0, t.player.size, t.player.size);
+                    t.play(audio.currentTime / audio.duration);
+                    
+                    analyser.getByteFrequencyData(t.soundData);
+
+                    t.raf = window.requestAnimationFrame(animate);
                 }
 
             }
@@ -230,7 +387,8 @@
                 t.ctx.closePath();
 
                 t.ctx.lineWidth = 1;
-                t.ctx.strokeStyle = "rgba(255, 255, 255, .5)";
+                // t.ctx.strokeStyle = "rgba(255, 255, 255, .5)";
+                t.ctx.strokeStyle = `${t.rdmColor}.5)`;
                 t.ctx.stroke();
 
                 // for(let i = 0; i < dataArray2.length; i++){
@@ -318,7 +476,49 @@
             constructor(param);
         }
 
-        
+        function RoAudio(param){
+            const t = this;
+            t.audioList = [];
+
+            function constructor(obj){
+                function settingTarget(){
+                    t.target = qs(obj.target);
+                    t.target.type = 'file';
+                    t.target.multiple = true;
+                    t.target.oninput = (e) => {
+                        const files = e.target.files;
+                        if(files && files.length){
+                            for(let i = 0; i < files.length; i++){
+                                t.audioList.push(files[i]);
+                                audioList.add(files[i]);
+                            }
+                        }
+                    }
+                }
+                settingTarget();
+            }
+
+            constructor(param);
+        }
+
+        function AudioList(param){
+            const t = this;
+            function constructor(obj){
+                t.target = qs(obj.target);
+            }
+
+            t.tmpl = obj => {
+                const li = document.createElement('li');
+                li.innerHTML = obj.name;
+                li.addEventListener('click', param.fnc_click);
+
+                return li;
+            }
+
+            t.add = audio => t.target.appendChild(t.tmpl(audio));
+            
+            constructor(param);
+        }
     </script>
 </body>
 </html>
