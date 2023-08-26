@@ -180,8 +180,9 @@
 
         const audioList = new AudioList({
             target: '#audioList',
-            fnc_click: () => {
-                roAudioPlayer.play2(roAudio.audioList, 0);
+            fnc_click: (idx) => {
+                if(roAudioPlayer.curAudio) roAudioPlayer.curAudio.pause();
+                roAudioPlayer.play2(roAudio.audioList, idx);
                 toggleMenu();
             }
         });
@@ -206,6 +207,7 @@
             t.raf = '';
             t.rdmColor;
             t.curPercent = 0;
+            t.curAudio;
 
             const calcedR = (playerSize = 500, padding = 0, playerLineWidth = 4, handlerSize = 6) => {
                 return (playerSize * .5) - padding - (playerLineWidth > handlerSize ? (playerLineWidth * .5) : (handlerSize * .5));
@@ -273,25 +275,27 @@
 
             t.play2 = (list, idx) => {
                 const audio = new Audio();
+                t.curAudio = audio;
                 audio.src = URL.createObjectURL(list[idx]);
                 audio.load();
                 
                 audio.onloadeddata = () => {
                     audio.play();
-
+                    
                     t.rdmColor = colorList[getRandomNum(0, colorList.length - 1)];
-
+                    
                     const audioCtx = new AudioContext();
                     audioSource = audioCtx.createMediaElementSource(audio);
                     analyser = audioCtx.createAnalyser();
                     audioSource.connect(analyser);
                     analyser.connect(audioCtx.destination);
                     analyser.fftSize = 128;
-
+                    
                     const bufferLength = analyser.frequencyBinCount;
-
+                    
                     t.soundData = new Uint8Array(bufferLength);
-
+                    
+                    
                     animate();
                 };
 
@@ -510,7 +514,11 @@
             t.tmpl = obj => {
                 const li = document.createElement('li');
                 li.innerHTML = obj.name;
-                li.addEventListener('click', param.fnc_click);
+                if(param.fnc_click && typeof param.fnc_click === 'function'){
+                    li.onclick = () => {
+                        param.fnc_click(0);
+                    }
+                }
 
                 return li;
             }
