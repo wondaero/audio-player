@@ -318,7 +318,7 @@
             playerSize: 300,
             player: {
                 size: 300,
-                lineWidth: 4,
+                lineWidth: 2,
                 padding: 10,
                 trackColor: 'rgba(255, 255, 255, .2)',
                 color: '#f00'
@@ -441,7 +441,8 @@
                 t.ctx.rotate(degToRadi(-90));
                 t.ctx.translate(-half, -half);
                 t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(per * .5)), false);
-                t.ctx.lineWidth = t.player.lineWidth || 4;
+                // t.ctx.lineWidth = t.player.lineWidth || 4;
+                t.ctx.lineWidth = 6;
                 // t.ctx.strokeStyle = t.player.color || '#000';
                 t.ctx.strokeStyle = `${t.rdmColor}${per})`;
                 t.ctx.stroke();
@@ -528,7 +529,7 @@
                 t.ctx.translate(-half, -half);
                 t.ctx.arc(half, half, half - (t.handler.size * 3),  0, degToRadi(perToDeg(1)), true);
                 t.ctx.strokeStyle = t.rdmColor ? `${t.rdmColor}1)` : 'rgba(255, 255, 255, .2)';
-                t.ctx.lineWidth = 4;
+                t.ctx.lineWidth = 1;
                 t.ctx.stroke();
             }
 
@@ -558,7 +559,8 @@
                     t.ctx.rotate(degToRadi(90));
                     t.ctx.translate(-half, -half);
                     t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size) - (t.handler.size), 0, deg, false);
-                    t.ctx.lineWidth = t.player.lineWidth || 4;
+                    // t.ctx.lineWidth = t.player.lineWidth || 4;
+                    t.ctx.lineWidth = 2;
                     t.ctx.strokeStyle = color;
                     t.ctx.lineCap = 'butt';
                     t.ctx.stroke();
@@ -612,13 +614,13 @@
             t.new = (idx) => {
                 if(idx === 'prev'){
                     if(t.curIdx === 0){
-                        alert('이전 노래가 없습니다.');
+                        alert('이전 곡이 존재하지 않습니다.');
                         return;
                     }
                     idx = (t.curIdx -= 1);
                 }else if(idx === 'next'){
                     if(t.curIdx === t.audioList.length - 1){
-                        alert('이후 노래가 없습니다.');
+                        alert('다음 곡이 존재하지 않습니다.');
                         return;
                     }
                     idx = (t.curIdx += 1);
