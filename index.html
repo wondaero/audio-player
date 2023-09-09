@@ -264,9 +264,9 @@
     <div class="wrapper">
         <div id="player" class="ro-player"></div>
         <div class="player-controller">
-            <div class="prev" onclick="roAudio.new('prev')"></div>
+            <div class="prev" onclick="preNxt('prev')"></div>
             <div class="play-pause" id="playPause" onclick="togglePlay()"></div>
-            <div class="next" onclick="roAudio.new('next')"></div>
+            <div class="next" onclick="preNxt('next')"></div>
         </div>
         <aside id="dimLayer" class="dim-layer" onclick="toggleMenu()"></aside>
         <aside id="menu" class="menu">
@@ -295,6 +295,7 @@
         const state  = {
             // menuOpen: false
         }
+
         function toggleMenu(){
             qs('#dimLayer').classList.toggle('on');
             qs('#menu').classList.toggle('on');
@@ -308,6 +309,10 @@
             }
         }
         
+        function preNxt(dir){
+            roAudio.new(dir);
+            togglePlay(true);
+        }
         // function otherOrder(dir){
         //     roAudio.new(dir);
         // }
@@ -365,6 +370,7 @@
                 `rgba(255, 255, 0, `,
                 `rgba(255, 0, 255, `,
                 `rgba(0, 255, 255, `,
+                `rgba(255, 255, 255, `,
             ];
             
             t.raf = '';
