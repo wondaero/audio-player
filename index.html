@@ -130,11 +130,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: #fff;
-            opacity: .3;
             transform: scaleX(0);
             transform-origin: 100% 0;
             transition: transform .5s;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
         .dim-layer.on{
             transform: scaleX(1);
@@ -277,7 +277,7 @@
             </div>
             <header>
                 <label class="input-wrapper">
-                    <input type="file" id="inputFile" />
+                    <input type="file" id="inputFile" accept="audio/*" />
                     <strong>
                         <span></span>
                         <span></span>
@@ -310,6 +310,8 @@
         }
         
         function preNxt(dir){
+            if(roAudio.freeze) return;
+
             roAudio.new(dir);
             togglePlay(true);
         }
@@ -345,10 +347,15 @@
         const audioList = new AudioList({
             target: '#audioList',
             fnc_click: (idx) => {
+                // 플레이리스트 내 버튼 클릭
+                
                 // if(RoAudio.curAudio) RoAudio.curAudio.pause();
                 // roAudioPlayer.play2(roAudio.audioList, idx);
-
+                
                 // roAudio.play(idx);
+                if(roAudio.freeze) return;
+                console.log('재생!');
+
                 roAudio.new(idx);
                 togglePlay(true);
                 
@@ -594,6 +601,7 @@
             t.curIdx = 0;
 
             t.raf;
+            t.freeze = false;
 
             function constructor(obj){
                 function settingTarget(){
@@ -618,6 +626,9 @@
             }
 
             t.new = (idx) => {
+                if(t.freeze === true) return;
+                t.freeze = true;
+
                 if(idx === 'prev'){
                     if(t.curIdx === 0){
                         alert('이전 곡이 존재하지 않습니다.');
@@ -660,6 +671,8 @@
                     audioList.active(idx);
 
                     playing();
+
+                    t.freeze = false;
                 };
             }
 
