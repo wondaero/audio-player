@@ -181,7 +181,6 @@
         .menu.on .menu-btn span:nth-of-type(3){top: 20px; transform: rotate(-45deg);}
         .menu.on .menu-btn span:nth-of-type(2){opacity: 0; left: -10px;}
 
-
         .menu header{
             padding-bottom: 10px;
             border-bottom: 1px dashed rgba(0, 0, 0, .5);
@@ -236,19 +235,6 @@
             background: linear-gradient(to right, black 5px, transparent 0);
             /* color: #fff; */
         }
-        .menu li.active:after{
-            /* content: ''; */
-            display: block;
-            position: absolute;
-            background: #f00;
-            box-shadow: inset 1px 1px 2px rgba(0, 0, 0, .2);
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            top: 5px;
-            left: 5px;
-            /* margin-top: 10px; */
-        }
 
         @media (max-width: 761px) {
             .menu{max-width: 320px;}
@@ -290,6 +276,63 @@
     
 
     <script>
+        class Console2{
+            constructor(){
+
+                this.createUI();
+            }
+
+            createUI(){
+                const p = document.createElement('p');
+                p.style.cssText = `
+                    position: fixed;
+                    height: 300px;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    box-shadow: 0 -1px 5px #000;
+                    box-sizing: border-box;
+                    padding: 10px;
+                    overflow-y: scroll;
+                    z-index: -1;
+                    background: #fff;
+                    font-size: 16px;
+                `;
+
+                this.p = p;
+
+                document.body.appendChild(p);
+            }
+
+            formatDate(date) {
+                // Helper function to pad numbers with leading zeros
+                const pad = (num, size) => String(num).padStart(size, '0');
+
+                const year = date.getFullYear();
+                const month = pad(date.getMonth() + 1, 2); // getMonth() is zero-based
+                const day = pad(date.getDate(), 2);
+                const hours = pad(date.getHours(), 2);
+                const minutes = pad(date.getMinutes(), 2);
+                const seconds = pad(date.getSeconds(), 2);
+                const milliseconds = pad(date.getMilliseconds(), 3);
+
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+            }
+
+
+            log(msg, addedStyle){
+                console.log(msg);
+                const span = document.createElement('span');
+                span.style.cssText = `
+                    display: block;
+                    ${addedStyle || ''}
+                `;
+                span.innerHTML = `[${this.formatDate(new Date())}] ${msg}`;
+                this.p.appendChild(span);
+            }
+        }
+
+        // const cs = new Console2();
         const qs = trg => document.querySelector(trg);
         const qsa = trgs => document.querySelector(trgs);
         const state  = {
@@ -312,7 +355,7 @@
         function preNxt(dir){
             if(roAudio.freeze) return;
 
-            roAudio.new(dir);
+            roAudio.new(dir === 'next'? ++roAudio.curIdx : --roAudio.curIdx);
             togglePlay(true);
         }
         // function otherOrder(dir){
@@ -384,6 +427,7 @@
             t.rdmColor;
             t.curPercent = 0;
             t.curAudio;
+            t.audioCtx;
 
             const calcedR = (playerSize = 500, padding = 0, playerLineWidth = 4, handlerSize = 6) => {
                 return (playerSize * .5) - padding - (playerLineWidth > handlerSize ? (playerLineWidth * .5) : (handlerSize * .5));
@@ -489,11 +533,12 @@
 
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 t.ctx.translate(half, half);
-                t.ctx.rotate(degToRadi(per * 360));
+                
+                t.ctx.rotate(degToRadi((per < 1 ? per : 1) * 360));
                 t.ctx.translate(-half, -half);
 
                 // const radius = (half - (t.handler.size * 5)) * (dataArray2[getRandomNum(0, dataArray2.length - 1)] / 255);
-                const radius = (half - (t.handler.size * 5)) * (dataArray2[1] / 255);
+                const radius = (half - (t.handler.size * 5)) * (dataArray2[8] / 255);
                 for (let i = 0; i < sides; i++) {
                     const angle = (i * 2 * Math.PI) / sides;
                     const x = half + randomAmplitude() + radius * Math.cos(angle);
@@ -575,8 +620,19 @@
             t.curAudio;
             t.curIdx = 0;
 
+
+            t.audioCtx;
+            t.audioBuffers = [];
+            t.audioList2 = [];
+            t.analyser;
+
+            t.source;
+
+            t.orgStartTime;
+
             t.raf;
             t.freeze = false;
+            t.playing = false;
 
             function constructor(obj){
                 function settingTarget(){
@@ -585,87 +641,99 @@
                     t.target.multiple = true;
                     t.target.oninput = (e) => {
                         const files = e.target.files;
-                        if(files && files.length){
-                            for(let i = 0; i < files.length; i++){
-                                t.audioList.push(files[i]);
-                                audioList.add(files[i]);
-                            }
 
-                            audioList.setOrder();
+                        if(!files || !files.length) return;
+
+                        if (!t.audioCtx) {
+                            t.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                            t.analyser = t.audioCtx.createAnalyser();
                         }
+                        
+                        Array.from(files).forEach(file => {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                t.audioCtx.decodeAudioData(e.target.result, buffer => {
+                                    const audioList2Len = t.audioList2.length;
+                                    t.audioList2.push({
+                                        file,
+                                        buffer,
+                                    })
 
-                        t.target.value = '';
+                                    audioList.add(file);
+
+                                    audioList.setOrder();
+
+                                    if(!audioList2Len) t.new(0);
+                                });
+
+                                
+                            };
+                            
+                            reader.readAsArrayBuffer(file);
+                        });
                     }
                 }
                 settingTarget();
             }
 
-            t.new = (idx) => {
+            t.new = (idx, curTime = 0) => {
+                t.curIdx = idx;
                 if(t.freeze === true) return;
                 t.freeze = true;
 
-                if(idx === 'prev'){
-                    if(t.curIdx === 0){
-                        alert('이전 곡이 존재하지 않습니다.');
-                        return;
-                    }
-                    idx = (t.curIdx -= 1);
-                }else if(idx === 'next'){
-                    if(t.curIdx === t.audioList.length - 1){
-                        alert('다음 곡이 존재하지 않습니다.');
-                        return;
-                    }
-                    idx = (t.curIdx += 1);
-                }else if(!isNaN(idx)){
-                    t.curIdx = idx;
-                }
+                if(t.source) t.source.stop();
 
-                if(t.curAudio) t.curAudio.pause();
+                if(!t.audioList2) return;
 
-                const audio = new Audio();
-                t.curAudio = audio;
-                t.curSoundData; 
-                t.curAudio.src = URL.createObjectURL(t.audioList[idx]);
-                t.curAudio.load();
-                
-                t.curAudio.onloadeddata = () => {
-                    t.curAudio.play();
-                    const audioCtx = new AudioContext();
-                    audioSource = audioCtx.createMediaElementSource(t.curAudio);
-                    analyser = audioCtx.createAnalyser();
-                    audioSource.connect(analyser);
-                    analyser.connect(audioCtx.destination);
-                    analyser.fftSize = 128;
-                    
-                    const bufferLength = analyser.frequencyBinCount;
-                    
-                    t.curSoundData = new Uint8Array(bufferLength);
+                t.source = t.audioCtx.createBufferSource();
+                t.source.buffer = t.audioList2[idx].buffer;
+                t.source.connect(t.analyser);
+                t.analyser.connect(t.audioCtx.destination);
 
-                    roAudioPlayer.setRdmColor();
+                t.orgStartTime = t.audioCtx.currentTime;
 
-                    audioList.active(idx);
+                t.source.start();
 
-                    playing();
+                t.visualize();
 
-                    t.freeze = false;
-                };
+                playing();
+
+                t.freeze = false;
             }
 
-            t.pause = () => {
-                t.curAudio.pause();
-            }
-            t.play = () => {
-                t.curAudio.play();
-            }
             t.toggle = () => {
                 if(t.curAudio) t.curAudio[t.curAudio.paused ? 'play' : 'pause']();
                 return !t.curAudio.paused;
             }
 
+            t.visualize = () => {
+                if(t.isPlaying) return;
+
+                t.analyser.fftSize = 128 || 256;
+                const bufferLength = t.analyser.frequencyBinCount;
+                t.curSoundData = new Uint8Array(bufferLength);
+                
+
+                roAudioPlayer.setRdmColor();
+
+                audioList.active(t.curIdx);
+
+                playing();
+
+            }
+
+
             function playing(){
                 if(param.fnc_playing && typeof param.fnc_playing === 'function'){
-                    param.fnc_playing(t.curAudio.currentTime / t.curAudio.duration, t.curSoundData);
-                    analyser.getByteFrequencyData(t.curSoundData);
+                    // t.setAudioCtx();
+
+                    let curTime  = t.audioCtx.currentTime - (t.orgStartTime || 0);
+                    curTime = Math.max(0, curTime); 
+                    const duration = t.audioList2[t.curIdx].buffer.duration;
+                    // console.log(curTime / duration);
+
+                    param.fnc_playing(curTime / duration, t.curSoundData);
+                    t.analyser.getByteFrequencyData(t.curSoundData);
                 }
 
                 t.raf = window.requestAnimationFrame(playing);
@@ -706,6 +774,24 @@
             }
             
             constructor(param);
+        }
+
+        class Raudio{
+            constructor(){
+
+            }
+        }
+
+        class RaudioPlayer{
+
+        }
+
+        class RaudioList{
+
+        }
+
+        class RVisualize{
+
         }
     </script>
 </body>
