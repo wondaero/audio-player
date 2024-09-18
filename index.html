@@ -21,7 +21,23 @@
         .ro-player canvas{
             max-width: 800px;
             max-height: 800px;
+            margin-bottom: 10px;
+        }
+
+        .track-info{
+            color: #fff;
+            text-align: center;
             margin-bottom: 20px;
+        }
+
+        .track-info h4{
+            font-size: 18px;
+            margin: 0;
+            margin-bottom: 10px;
+        }
+        .track-info h3{
+            font-size: 24px;
+            margin: 0;
         }
 
         .player-controller{
@@ -172,6 +188,7 @@
             border-radius: 5px;
             left: 10px;
             transition: 1s;
+            cursor: pointer;
         }
         .menu-btn span:nth-of-type(1){top: 10px;}
         .menu-btn span:nth-of-type(2){top: 20px;}
@@ -249,6 +266,10 @@
 <body>
     <div class="wrapper">
         <div id="player" class="ro-player"></div>
+        <div class="track-info">
+            <h4 id="duration"><strong>-</strong> / <span>-</span></h4>
+            <h3 id="title">-</h3>
+        </div>
         <div class="player-controller">
             <div class="prev" onclick="preNxt('prev')"></div>
             <div class="play-pause" id="playPause" onclick="togglePlay()"></div>
@@ -355,6 +376,8 @@
         function preNxt(dir){
             if(roAudio.freeze) return;
 
+            roAudio.forced = true;
+
             roAudio.new(dir === 'next'? ++roAudio.curIdx : --roAudio.curIdx);
             togglePlay(true);
         }
@@ -399,9 +422,9 @@
                 if(roAudio.freeze) return;
                 console.log('재생!');
 
+                roAudio.forced = true;
                 roAudio.new(idx);
                 togglePlay(true);
-                
 
                 toggleMenu();
             },
@@ -526,7 +549,7 @@
 
                 const sides = parseInt(t.playerSize / 5);
 
-                const waveAmplitude = 2; // 출렁이는 정도
+                const waveAmplitude = 0; // 출렁이는 정도
                 const randomAmplitude = () => Math.random() * waveAmplitude * 2 - waveAmplitude;
 
                 t.ctx.beginPath();
@@ -549,10 +572,12 @@
                 t.ctx.closePath();
 
                 t.ctx.lineWidth = 2;
-                t.ctx.strokeStyle = `${t.rdmColor}.5)`;
-                t.ctx.stroke();
+                // t.ctx.strokeStyle = `${t.rdmColor}.5)`;
+                // t.ctx.stroke();
                 // t.ctx.fillStyle = `${t.rdmColor}.5)`;
                 // t.ctx.fill();
+                t.ctx.fillStyle = `${t.rdmColor}.${dataArray2[8] / 128})`;
+                t.ctx.fill();
 
 
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -633,6 +658,7 @@
             t.raf;
             t.freeze = false;
             t.playing = false;
+            t.forced = false;
 
             function constructor(obj){
                 function settingTarget(){
@@ -660,10 +686,12 @@
                                     })
 
                                     audioList.add(file);
-
                                     audioList.setOrder();
 
-                                    if(!audioList2Len) t.new(0);
+                                    if(!audioList2Len){
+                                        t.new(0);
+                                        toggleMenu();
+                                    }
                                 });
 
                                 
@@ -676,23 +704,51 @@
                 settingTarget();
             }
 
+            t.format = sec => {
+                sec = parseInt(sec);
+                let h = parseInt(sec / (60 * 60));
+                let m = parseInt(sec / (60)) % 60;
+                let s = parseInt(sec % 60);
+                if(h && m < 10) m = '0' + m; 
+                if((h || m) && s < 10) s = '0' + s; 
+                return `${h ? h  + ':' : ''}${m ? m + ':' : ''}${s}`;
+            }
+
             t.new = (idx, curTime = 0) => {
                 t.curIdx = idx;
                 if(t.freeze === true) return;
                 t.freeze = true;
 
-                if(t.source) t.source.stop();
+                if(t.source){
+                    t.source.stop();
+                }
 
                 if(!t.audioList2) return;
 
+                const thisAudio = t.audioList2[t.curIdx];
+
+                document.querySelector('#title').textContent = thisAudio.file.name;
+                document.querySelector('#duration span').textContent = t.format(thisAudio.buffer.duration);
+
+
+
                 t.source = t.audioCtx.createBufferSource();
-                t.source.buffer = t.audioList2[idx].buffer;
+                t.source.buffer = thisAudio.buffer;
                 t.source.connect(t.analyser);
                 t.analyser.connect(t.audioCtx.destination);
 
                 t.orgStartTime = t.audioCtx.currentTime;
 
                 t.source.start();
+
+                t.source.onended = () => {
+                    if (t.forced){
+                        t.forced = false;
+                        return;
+                    }
+                    t.new(++t.curIdx); // 다음 곡 재생
+                    t.forced = false;
+                };
 
                 t.visualize();
 
@@ -719,18 +775,17 @@
                 audioList.active(t.curIdx);
 
                 playing();
-
             }
 
 
             function playing(){
                 if(param.fnc_playing && typeof param.fnc_playing === 'function'){
-                    // t.setAudioCtx();
-
                     let curTime  = t.audioCtx.currentTime - (t.orgStartTime || 0);
+
+                    document.querySelector('#duration strong').textContent = t.format(parseInt(curTime));
+                    
                     curTime = Math.max(0, curTime); 
                     const duration = t.audioList2[t.curIdx].buffer.duration;
-                    // console.log(curTime / duration);
 
                     param.fnc_playing(curTime / duration, t.curSoundData);
                     t.analyser.getByteFrequencyData(t.curSoundData);
@@ -776,23 +831,6 @@
             constructor(param);
         }
 
-        class Raudio{
-            constructor(){
-
-            }
-        }
-
-        class RaudioPlayer{
-
-        }
-
-        class RaudioList{
-
-        }
-
-        class RVisualize{
-
-        }
     </script>
 </body>
 </html>
