@@ -451,6 +451,7 @@
             t.curPercent = 0;
             t.curAudio;
             t.audioCtx;
+            t.rotateDeg = 0;
 
             const calcedR = (playerSize = 500, padding = 0, playerLineWidth = 4, handlerSize = 6) => {
                 return (playerSize * .5) - padding - (playerLineWidth > handlerSize ? (playerLineWidth * .5) : (handlerSize * .5));
@@ -545,12 +546,44 @@
 
             t.drawCenter = (per, data) => {
                 const half = t.playerSize * .5;
-                const dataArray2 = data.filter(x => x !== 0);
+                // const dataArray2 = data.filter(x => x !== 0);
+                const dataArray2 = data;
 
                 const sides = parseInt(t.playerSize / 5);
 
-                const waveAmplitude = 0; // 출렁이는 정도
+                const waveAmplitude = 3; // 출렁이는 정도
                 const randomAmplitude = () => Math.random() * waveAmplitude * 2 - waveAmplitude;
+
+                const minVal = 15;
+
+                const addedDeg = 0.001 + ((+dataArray2[6] || 0) * 0.00005);
+                t.rotateDeg += addedDeg;
+
+                for(let i = 0; i < dataArray2.length; i++){
+                    t.ctx.beginPath();
+                    t.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    t.ctx.beginPath();
+                    t.ctx.translate(half, half);
+                    t.ctx.rotate(degToRadi(i * 360 / dataArray2.length) + t.rotateDeg);
+                    // t.ctx.rotate(degToRadi(i * 360 / 2));
+                    // t.ctx.translate(-half, -half);
+                    let radius = ((half - (t.handler.size * 5)) * (dataArray2[i] / 512)) + .5;
+                    // const radius = (half - (t.handler.size * 5));
+                    t.ctx.moveTo(10, 10);
+                    t.ctx.moveTo(radius + minVal, radius + minVal);
+                    t.ctx.lineTo(minVal, minVal);
+                    t.ctx.lineWidth = 5;
+                    t.ctx.lineCap = 'round'; // 끝을 둥글게 설정
+                    // t.ctx.strokeStyle = `${t.rdmColor}${(i / dataArray2.length)})`;
+                    t.ctx.strokeStyle = `${t.rdmColor}.5)`;
+                    t.ctx.stroke();
+                }
+
+
+
+
+
+
 
                 t.ctx.beginPath();
 
@@ -561,25 +594,43 @@
                 t.ctx.translate(-half, -half);
 
                 // const radius = (half - (t.handler.size * 5)) * (dataArray2[getRandomNum(0, dataArray2.length - 1)] / 255);
-                const radius = (half - (t.handler.size * 5)) * (dataArray2[8] / 255);
+                const radius = (half - (t.handler.size * 5)) * (dataArray2[8] / 128);
                 for (let i = 0; i < sides; i++) {
                     const angle = (i * 2 * Math.PI) / sides;
                     const x = half + randomAmplitude() + radius * Math.cos(angle);
                     const y = half + randomAmplitude() + radius * Math.sin(angle);
                     t.ctx[i === 0 ? 'moveTo' : 'lineTo'](x, y);
+
+                }
+
+                t.ctx.closePath();
+
+                t.ctx.lineWidth = 2;
+                t.ctx.strokeStyle = `${t.rdmColor}.5)`;
+                t.ctx.stroke();
+
+
+                const radius2 = (half - (t.handler.size * 5)) * (dataArray2[1] / 128);
+
+                for (let i = 0; i < sides; i++) {
+                    const angle = (i * 2 * Math.PI) / sides;
+                    const x = half + radius2 * Math.cos(angle);
+                    const y = half + radius2 * Math.sin(angle);
+                    t.ctx[i === 0 ? 'moveTo' : 'lineTo'](x, y);
                 }
                 
                 t.ctx.closePath();
 
-                t.ctx.lineWidth = 2;
-                // t.ctx.strokeStyle = `${t.rdmColor}.5)`;
-                // t.ctx.stroke();
-                // t.ctx.fillStyle = `${t.rdmColor}.5)`;
-                // t.ctx.fill();
-                t.ctx.fillStyle = `${t.rdmColor}.${dataArray2[8] / 128})`;
+                t.ctx.fillStyle = `rgba(255, 255, 255, .2)`;
                 t.ctx.fill();
 
 
+                // t.ctx.fillStyle = `${t.rdmColor}.5)`;
+                // t.ctx.fill();
+                // t.ctx.fillStyle = `${t.rdmColor}.${dataArray2[8] / 128})`;
+                // t.ctx.fill();
+
+                //바깥 원
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 t.ctx.beginPath();
                 t.ctx.translate(half, half);
@@ -690,7 +741,9 @@
 
                                     if(!audioList2Len){
                                         t.new(0);
-                                        toggleMenu();
+                                        setTimeout(() => {
+                                            toggleMenu();
+                                        }, 500);
                                     }
                                 });
 
@@ -704,13 +757,17 @@
                 settingTarget();
             }
 
-            t.format = sec => {
+            t.format = (sec) => {
                 sec = parseInt(sec);
                 let h = parseInt(sec / (60 * 60));
                 let m = parseInt(sec / (60)) % 60;
                 let s = parseInt(sec % 60);
-                if(h && m < 10) m = '0' + m; 
-                if((h || m) && s < 10) s = '0' + s; 
+                // if(h && m < 10) m = '0' + m;
+                // if((h || m) && s < 10) s = '0' + s;
+
+                if(m < 10) m = '0' + m;
+                if(s < 10) s = '0' + s;
+
                 return `${h ? h  + ':' : ''}${m ? m + ':' : ''}${s}`;
             }
 
