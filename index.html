@@ -583,7 +583,7 @@
                 t.ctx.fillStyle = color; // 테두리 색상 설정
                 t.ctx.lineWidth = 2;
                 t.ctx.stroke(); // 테두리 그리기
-                t.ctx.fill(); // 테두리 그리기
+                // t.ctx.fill(); // 테두리 그리기
             }
 
             t.drawCenter = (per, data) => {
@@ -606,8 +606,8 @@
                 t.rotateDeg += addedDeg;
 
                 const sideNum = (num) => parseInt(num / parseInt(255 / 6)) || 0; 
-                const varSide = sideNum(dataArray2[8]) + 3;
-                t.drawPolygon(varSide, (dataArray2[24] / 3), half, `${t.rdmColor}.5)`, t.rotateDeg);
+                const varSide = sideNum(dataArray2[8]) + 1;
+                t.drawPolygon(varSide, (dataArray2[1] / 4), half, `${t.rdmColor}.5)`, t.rotateDeg);
 
                 // for(let i = 0; i < dataArray2.length; i++){
                 //     t.ctx.beginPath();
@@ -635,8 +635,6 @@
 
 
 
-
-
                 t.ctx.beginPath();
 
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -656,12 +654,13 @@
 
                 t.ctx.closePath();
 
-                t.ctx.lineWidth = 2;
+                t.ctx.lineWidth = 1;
                 t.ctx.strokeStyle = `${t.rdmColor}.5)`;
                 t.ctx.stroke();
+                
+                t.ctx.beginPath();
 
-
-                const radius2 = (half - (t.handler.size * 5)) * (dataArray2[1] / 128);
+                const radius2 = (half - (t.handler.size * 5)) * (dataArray2[24] / 64);
 
                 for (let i = 0; i < sides; i++) {
                     const angle = (i * 2 * Math.PI) / sides;
@@ -672,8 +671,11 @@
                 
                 t.ctx.closePath();
 
+                t.ctx.lineWidth = 2;
                 t.ctx.fillStyle = `rgba(255, 255, 255, .2)`;
                 t.ctx.fill();
+                t.ctx.strokeStyle = `#fff`;
+                t.ctx.stroke();
 
 
                 // t.ctx.fillStyle = `${t.rdmColor}.5)`;
@@ -860,11 +862,11 @@
                 t.isPlaying = true;
 
                 t.source.onended = () => {
-                    t.isPlaying = false;
                     if (t.forced){
                         t.forced = false;
                         return;
                     }
+                    t.isPlaying = false;
                     t.pausedTime = 0;
                     window.clearInterval(t.raf);
                     t.new(++t.curIdx); // 다음 곡 재생
@@ -899,6 +901,7 @@
 
 
             function playing(){
+                console.log(t.isPlaying);
                 if(param.fnc_playing && typeof param.fnc_playing === 'function' && t.isPlaying){
                     let curTime = t.audioCtx.currentTime - (t.orgStartTime || 0) + t.pausedTime;
 
