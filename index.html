@@ -580,8 +580,10 @@
                 }
                 t.ctx.closePath();
                 t.ctx.strokeStyle = color; // 테두리 색상 설정
+                t.ctx.fillStyle = color; // 테두리 색상 설정
                 t.ctx.lineWidth = 2;
                 t.ctx.stroke(); // 테두리 그리기
+                t.ctx.fill(); // 테두리 그리기
             }
 
             t.drawCenter = (per, data) => {
@@ -858,6 +860,7 @@
                 t.isPlaying = true;
 
                 t.source.onended = () => {
+                    t.isPlaying = false;
                     if (t.forced){
                         t.forced = false;
                         return;
