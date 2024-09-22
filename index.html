@@ -34,6 +34,10 @@
             font-size: 18px;
             margin: 0;
             margin-bottom: 10px;
+            color: rgba(255, 255, 255, .5);
+        }
+        .track-info h4 strong{
+            color: #fff;
         }
         .track-info h3{
             font-size: 24px;
@@ -267,8 +271,8 @@
     <div class="wrapper">
         <div id="player" class="ro-player"></div>
         <div class="track-info">
-            <h4 id="duration"><strong>-</strong> / <span>-</span></h4>
-            <h3 id="title">-</h3>
+            <h4 id="duration"><strong>00:00</strong> / <span>00:00</span></h4>
+            <h3 id="title">곡이 없습니다.</h3>
         </div>
         <div class="player-controller">
             <div class="prev" onclick="preNxt('prev')"></div>
@@ -364,12 +368,22 @@
             qs('#dimLayer').classList.toggle('on');
             qs('#menu').classList.toggle('on');
         }
-        function togglePlay(bool){
-            if(roAudio.curAudio){
-                if(bool === undefined) qs('#playPause').classList[roAudio.toggle() ? 'add' : 'remove']('pause');
-                else{
-                    qs('#playPause').classList[bool ? 'add' : 'remove']('pause');
-                }
+        function togglePlay(){
+            if(roAudio.isPlaying){
+                roAudio.forced = true;
+                roAudio.isPlaying = false;
+                roAudio.pausedTime += roAudio.audioCtx.currentTime - roAudio.orgStartTime;
+                roAudio.source.stop();
+            }else{
+                roAudio.new(roAudio.curIdx, undefined, 'auto');
+            }
+
+            togglePlayUI();
+        }
+        function togglePlayUI(bool){
+            if(bool === undefined) qs('#playPause').classList[roAudio.isPlaying ? 'add' : 'remove']('pause');
+            else{
+                qs('#playPause').classList[bool ? 'add' : 'remove']('pause');
             }
         }
         
@@ -378,8 +392,9 @@
 
             roAudio.forced = true;
 
-            roAudio.new(dir === 'next'? ++roAudio.curIdx : --roAudio.curIdx);
-            togglePlay(true);
+            if(roAudio.new(dir === 'next'? ++roAudio.curIdx : --roAudio.curIdx)){
+                togglePlayUI(true);
+            };
         }
         // function otherOrder(dir){
         //     roAudio.new(dir);
@@ -424,7 +439,7 @@
 
                 roAudio.forced = true;
                 roAudio.new(idx);
-                togglePlay(true);
+                togglePlayUI(true);
 
                 toggleMenu();
             },
@@ -543,20 +558,23 @@
                 t.ctx.fill();
             }
 
-
             t.drawCenter = (per, data) => {
                 const half = t.playerSize * .5;
-                // const dataArray2 = data.filter(x => x !== 0);
-                const dataArray2 = data;
+                let dataArray2 = data.filter(x => x !== 0);
+                // let dataArray2 = data;
+                dataArray2 = [...dataArray2, ...dataArray2.reverse()];
+                dataArray2 = [...dataArray2, ...dataArray2];
+                dataArray2 = [...dataArray2, ...dataArray2];
+                // dataArray2 = [...dataArray2, ...dataArray2];
 
                 const sides = parseInt(t.playerSize / 5);
 
                 const waveAmplitude = 3; // 출렁이는 정도
                 const randomAmplitude = () => Math.random() * waveAmplitude * 2 - waveAmplitude;
 
-                const minVal = 15;
+                const minVal = 0;
 
-                const addedDeg = 0.001 + ((+dataArray2[6] || 0) * 0.00005);
+                const addedDeg = 0.01 - ((+dataArray2[6] || 0) * 0.00001);
                 t.rotateDeg += addedDeg;
 
                 for(let i = 0; i < dataArray2.length; i++){
@@ -565,8 +583,6 @@
                     t.ctx.beginPath();
                     t.ctx.translate(half, half);
                     t.ctx.rotate(degToRadi(i * 360 / dataArray2.length) + t.rotateDeg);
-                    // t.ctx.rotate(degToRadi(i * 360 / 2));
-                    // t.ctx.translate(-half, -half);
                     let radius = ((half - (t.handler.size * 5)) * (dataArray2[i] / 512)) + .5;
                     // const radius = (half - (t.handler.size * 5));
                     t.ctx.moveTo(10, 10);
@@ -574,14 +590,9 @@
                     t.ctx.lineTo(minVal, minVal);
                     t.ctx.lineWidth = 5;
                     t.ctx.lineCap = 'round'; // 끝을 둥글게 설정
-                    // t.ctx.strokeStyle = `${t.rdmColor}${(i / dataArray2.length)})`;
                     t.ctx.strokeStyle = `${t.rdmColor}.5)`;
                     t.ctx.stroke();
                 }
-
-
-
-
 
 
 
@@ -659,8 +670,6 @@
 
                 drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `${t.rdmColor}${totalValue / (totalCnt * 255)})`);
 
-                // console.log(dataArray2);
-
                 function drawLeft(deg, color) {
                     t.ctx.beginPath();
                     t.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -708,8 +717,10 @@
 
             t.raf;
             t.freeze = false;
-            t.playing = false;
+            t.isPlaying = false;
             t.forced = false;
+
+            t.pausedTime = 0;
 
             function constructor(obj){
                 function settingTarget(){
@@ -743,6 +754,7 @@
                                         t.new(0);
                                         setTimeout(() => {
                                             toggleMenu();
+                                            togglePlayUI();
                                         }, 500);
                                     }
                                 });
@@ -771,23 +783,30 @@
                 return `${h ? h  + ':' : ''}${m ? m + ':' : ''}${s}`;
             }
 
-            t.new = (idx, curTime = 0) => {
-                t.curIdx = idx;
+            t.new = (idx, curTime = 0, auto) => {
+                const thisAudio = t.audioList2[idx];
+
+                if(!thisAudio){
+                    // alert('재생할 곡이 없습니다.');
+                    return;
+                }
+
                 if(t.freeze === true) return;
                 t.freeze = true;
 
                 if(t.source){
                     t.source.stop();
+                    t.isPlaying = false;
+                    // t.audioCtx.currentTime = 0;
                 }
 
                 if(!t.audioList2) return;
 
-                const thisAudio = t.audioList2[t.curIdx];
+
+                t.curIdx = idx;
 
                 document.querySelector('#title').textContent = thisAudio.file.name;
                 document.querySelector('#duration span').textContent = t.format(thisAudio.buffer.duration);
-
-
 
                 t.source = t.audioCtx.createBufferSource();
                 t.source.buffer = thisAudio.buffer;
@@ -796,13 +815,17 @@
 
                 t.orgStartTime = t.audioCtx.currentTime;
 
-                t.source.start();
+                t.source.start(0, auto === 'auto' ? t.pausedTime : curTime);
+
+                t.isPlaying = true;
 
                 t.source.onended = () => {
                     if (t.forced){
                         t.forced = false;
                         return;
                     }
+                    t.pausedTime = 0;
+                    window.clearInterval(t.raf);
                     t.new(++t.curIdx); // 다음 곡 재생
                     t.forced = false;
                 };
@@ -812,20 +835,19 @@
                 playing();
 
                 t.freeze = false;
+
+                return true;
             }
 
-            t.toggle = () => {
-                if(t.curAudio) t.curAudio[t.curAudio.paused ? 'play' : 'pause']();
-                return !t.curAudio.paused;
-            }
+            // t.toggle = () => {
+            //     if(t.curAudio) t.curAudio[t.curAudio.paused ? 'play' : 'pause']();
+            //     return !t.curAudio.paused;
+            // }
 
             t.visualize = () => {
-                if(t.isPlaying) return;
-
                 t.analyser.fftSize = 128 || 256;
                 const bufferLength = t.analyser.frequencyBinCount;
                 t.curSoundData = new Uint8Array(bufferLength);
-                
 
                 roAudioPlayer.setRdmColor();
 
@@ -836,19 +858,25 @@
 
 
             function playing(){
-                if(param.fnc_playing && typeof param.fnc_playing === 'function'){
-                    let curTime  = t.audioCtx.currentTime - (t.orgStartTime || 0);
+                if(param.fnc_playing && typeof param.fnc_playing === 'function' && t.isPlaying){
+                    let curTime = t.audioCtx.currentTime - (t.orgStartTime || 0) + t.pausedTime;
 
                     document.querySelector('#duration strong').textContent = t.format(parseInt(curTime));
                     
-                    curTime = Math.max(0, curTime); 
-                    const duration = t.audioList2[t.curIdx].buffer.duration;
+                    curTime = Math.max(0, curTime);
 
-                    param.fnc_playing(curTime / duration, t.curSoundData);
+                    if(t.audioList2[t.curIdx]){
+                        const duration = t.audioList2[t.curIdx].buffer.duration;
+                        param.fnc_playing(curTime / duration, t.curSoundData);
+                    }
                     t.analyser.getByteFrequencyData(t.curSoundData);
                 }
 
-                t.raf = window.requestAnimationFrame(playing);
+                if(t.isPlaying){
+                    t.raf = window.requestAnimationFrame(playing);
+                }else{
+                    window.cancelAnimationFrame(t.raf);
+                }
             }
 
             constructor(param);
