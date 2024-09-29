@@ -762,7 +762,6 @@
             }
 
             t.play = (per, data) => {
-                console.log(222);
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 clearRect();
@@ -824,16 +823,18 @@
                                         buffer,
                                     })
 
+
                                     audioList.add(file);
                                     audioList.setOrder();
 
-                                    if(!audioList2Len){
-                                        t.new(0);
-                                        setTimeout(() => {
-                                            toggleMenu();
-                                            togglePlayUI();
-                                        }, 500);
-                                    }
+                                    //일단 사파리 이슈로 인해 뺌
+                                    // if(!audioList2Len){
+                                    //     t.new(0);
+                                    //     setTimeout(() => {
+                                    //         toggleMenu();
+                                    //         togglePlayUI();
+                                    //     }, 500);
+                                    // }
                                 });
 
                                 
