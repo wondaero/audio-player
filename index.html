@@ -8,6 +8,7 @@
         html, body{
             background: linear-gradient(#001042, #000);
             height: 100%;
+            overflow: hidden;
         }
         .wrapper{
 
@@ -23,6 +24,9 @@
             max-width: 800px;
             max-height: 800px;
             margin-bottom: 10px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: var(--light-effect);
         }
 
         .track-info{
@@ -153,7 +157,7 @@
             bottom: 0;
             transform: scaleX(0);
             transform-origin: 100% 0;
-            transition: transform .5s;
+            /* transition: transform .5s; */
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
         }
@@ -174,6 +178,7 @@
             padding: 10px;
             display: flex;
             flex-direction: column;
+            z-index: 3;
         }
         .menu.on{transform: translateX(0);}
 
@@ -272,8 +277,11 @@
             right: 0;
             bottom: 0;
             pointer-events: none;
-            background: linear-gradient(to top, #fff 5%, transparent);
+            background: linear-gradient(to top, #0066cc 1%, transparent);
+            /* background: linear-gradient(#f00, transparent); */
             opacity: var(--light-effect);
+            /* opacity: 0; */
+            transition: opacity .1s;
         }
 
     </style>
@@ -619,15 +627,16 @@
 
                 const minVal = 0;
 
-                const addedDeg = 0.01 - ((+dataArray2[6] || 0) * 0.00001);
+                // const addedDeg = 0.01 - ((+dataArray2[6] || 0) * 0.00001);
+                const addedDeg = 0.01;
                 t.rotateDeg += addedDeg;
 
                 const sideNum = (num) => parseInt(num / parseInt(255 / 6)) || 0; 
                 const varSide = sideNum(dataArray2[8]) + 1;
                 t.drawPolygon(varSide, (dataArray2[1] / 4), half, `${t.rdmColor}.5)`, t.rotateDeg);
 
-
-                const op = !dataArray2[10] ? 0 : dataArray2[10] / 512;
+// 
+                const op = !dataArray2[10] ? 0 : dataArray2[10] / 256;
                 
                 lightEffect.style.setProperty('--light-effect', op);
 
@@ -753,6 +762,7 @@
             }
 
             t.play = (per, data) => {
+                console.log(222);
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 clearRect();
@@ -851,6 +861,7 @@
             }
 
             t.new = (idx, curTime = 0, auto) => {
+                window.cancelAnimationFrame(t.raf);
                 const thisAudio = t.audioList2[idx];
 
                 if(!thisAudio){
