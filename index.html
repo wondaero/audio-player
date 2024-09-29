@@ -6,7 +6,8 @@
     <title>Rodio player</title>
     <style>
         html, body{
-            background: #000;
+            background: linear-gradient(#001042, #000);
+            height: 100%;
         }
         .wrapper{
 
@@ -264,6 +265,16 @@
             .menu{max-width: 200px;}
         }
         
+        .light-effect{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background: linear-gradient(to top, #fff 5%, transparent);
+            opacity: var(--light-effect);
+        }
 
     </style>
 </head>
@@ -298,9 +309,13 @@
             <ul id="audioList"></ul>
         </aside>
     </div>
-    
+
+    <div id="lightEffect" class="light-effect"></div>
 
     <script>
+        const lightEffect = document.querySelector('#lightEffect');
+        lightEffect.style.setProperty('--light-effect', 0);
+
         class Console2{
             constructor(){
 
@@ -408,7 +423,8 @@
                 size: 300,
                 lineWidth: 2,
                 padding: 10,
-                trackColor: 'rgba(255, 255, 255, .2)',
+                trackColor: 'rgba(255, 255, 255, .3)',
+                trackColor: '#808080',
                 color: '#f00'
             },
             thumbSize: 5,
@@ -524,7 +540,8 @@
                 t.ctx.translate(-half, -half);
                 t.ctx.arc(half, half, calcedR(t.player.size, t.player.padding, t.player.lineWidth, t.handler.size), 0, degToRadi(perToDeg(.5)), false);
                 t.ctx.lineWidth = t.player.lineWidth || 4;
-                t.ctx.strokeStyle = t.player.trackColor || 'rgba(255, 255, 255, .2)';
+                // t.ctx.strokeStyle = t.player.trackColor || 'rgba(255, 255, 255, .3)';
+                t.ctx.strokeStyle = t.player.trackColor || '#808080';
                 t.ctx.stroke();
 
             }
@@ -608,6 +625,13 @@
                 const sideNum = (num) => parseInt(num / parseInt(255 / 6)) || 0; 
                 const varSide = sideNum(dataArray2[8]) + 1;
                 t.drawPolygon(varSide, (dataArray2[1] / 4), half, `${t.rdmColor}.5)`, t.rotateDeg);
+
+
+                const op = !dataArray2[10] ? 0 : dataArray2[10] / 512;
+                
+                lightEffect.style.setProperty('--light-effect', op);
+
+
 
                 // for(let i = 0; i < dataArray2.length; i++){
                 //     t.ctx.beginPath();
@@ -703,7 +727,8 @@
                 const dLen = dataArray2.length;
                 const half = t.playerSize * .5;
 
-                drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .2)`);
+                // drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .3)`);
+                drawLeft(degToRadi(perToDeg(.5)), `#808080`);
 
                 let totalValue = 0;
                 const totalCnt = dataArray2.length;
@@ -901,7 +926,6 @@
 
 
             function playing(){
-                console.log(t.isPlaying);
                 if(param.fnc_playing && typeof param.fnc_playing === 'function' && t.isPlaying){
                     let curTime = t.audioCtx.currentTime - (t.orgStartTime || 0) + t.pausedTime;
 
