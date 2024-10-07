@@ -11,7 +11,6 @@
             overflow: hidden;
         }
         .wrapper{
-
         }
         
         .ro-player{
@@ -27,6 +26,7 @@
             border-radius: 50%;
             overflow: hidden;
             box-shadow: var(--light-effect);
+            background: transparent;
         }
 
         .track-info{
@@ -262,6 +262,12 @@
             background: linear-gradient(to right, black 5px, transparent 0);
             /* color: #fff; */
         }
+        .menu li > div{
+            text-align: right;
+        }
+        .menu li svg{
+            height: 50px;
+        }
 
         @media (max-width: 761px) {
             .menu{max-width: 320px;}
@@ -283,6 +289,14 @@
             /* opacity: 0; */
             transition: opacity .1s;
         }
+        .bottom-eq{
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            /* background: orange; */
+        }
 
     </style>
 </head>
@@ -294,9 +308,9 @@
             <h3 id="title">곡이 없습니다.</h3>
         </div>
         <div class="player-controller">
-            <div class="prev" onclick="preNxt('prev')"></div>
+            <div class="prev" onclick="moveTrack('prev')"></div>
             <div class="play-pause" id="playPause" onclick="togglePlay()"></div>
-            <div class="next" onclick="preNxt('next')"></div>
+            <div class="next" onclick="moveTrack('next')"></div>
         </div>
         <aside id="dimLayer" class="dim-layer" onclick="toggleMenu()"></aside>
         <aside id="menu" class="menu">
@@ -308,6 +322,7 @@
             <header>
                 <label class="input-wrapper">
                     <input type="file" id="inputFile" accept="audio/*" />
+                    <!-- <input type="file" id="inputFile" /> -->
                     <strong>
                         <span></span>
                         <span></span>
@@ -391,29 +406,30 @@
             qs('#dimLayer').classList.toggle('on');
             qs('#menu').classList.toggle('on');
         }
+
         function togglePlay(){
             if(roAudio.isPlaying){
-                roAudio.forced = true;
                 roAudio.isPlaying = false;
                 roAudio.pausedTime += roAudio.audioCtx.currentTime - roAudio.orgStartTime;
+                roAudio.forcedTrack = true;
                 roAudio.source.stop();
             }else{
-                roAudio.new(roAudio.curIdx, undefined, 'auto');
+                roAudio.isContinue = true;
+                roAudio.new(roAudio.curIdx);
             }
 
             togglePlayUI();
         }
         function togglePlayUI(bool){
-            if(bool === undefined) qs('#playPause').classList[roAudio.isPlaying ? 'add' : 'remove']('pause');
-            else{
+            if(bool === undefined){
+                qs('#playPause').classList[roAudio.isPlaying ? 'add' : 'remove']('pause');
+            }else{
                 qs('#playPause').classList[bool ? 'add' : 'remove']('pause');
             }
         }
         
-        function preNxt(dir){
+        function moveTrack(dir){
             if(roAudio.freeze) return;
-
-            roAudio.forced = true;
 
             if(roAudio.new(dir === 'next'? ++roAudio.curIdx : --roAudio.curIdx)){
                 togglePlayUI(true);
@@ -444,8 +460,8 @@
 
         const roAudio = new RoAudio({
             target: '#inputFile',
-            fnc_playing: (per, soundData) => {
-                roAudioPlayer.play(per, soundData);
+            fnc_playing: (per, soundData, curIdx) => {
+                roAudioPlayer.play(per, soundData, curIdx);
             }
         });
 
@@ -461,7 +477,6 @@
                 if(roAudio.freeze) return;
                 console.log('재생!');
 
-                roAudio.forced = true;
                 roAudio.new(idx);
                 togglePlayUI(true);
 
@@ -497,9 +512,6 @@
             };
 
             t.resize = size => {
-                // const isSmaller = w > h + 100 ? h : w;
-                // const size = (parseInt(isSmaller / 100) > 9 ? 800 : parseInt(isSmaller / 100) * 100);
-
                 t.playerSize = size;
                 t.canvas.width = size || 300;
                 t.canvas.height = size || 300;
@@ -551,7 +563,6 @@
                 // t.ctx.strokeStyle = t.player.trackColor || 'rgba(255, 255, 255, .3)';
                 t.ctx.strokeStyle = t.player.trackColor || '#808080';
                 t.ctx.stroke();
-
             }
 
             t.drawProgress = (per) => {
@@ -639,6 +650,22 @@
                 const op = !dataArray2[10] ? 0 : dataArray2[10] / 256;
                 
                 lightEffect.style.setProperty('--light-effect', op);
+
+                let oldEq = document.querySelector('#bottomEq');
+                if(!oldEq){
+                    oldEq = document.createElement('div');
+                    oldEq.classList.add('bottom-eq')
+                    for(let i = 0; i < data.length; i++){   //64
+                        const el = document.createElement('div');
+                        oldEq.appendChild(el);
+                    }
+
+                    document.body.appendChild(oldEq);
+                }
+
+                for(let i = 0; i < data.length; i++){
+
+                }
 
 
 
@@ -728,15 +755,13 @@
                 t.ctx.stroke();
             }
 
-            t.visualizer = (data) => {
-                t.ctx.beginPath();
-
+            t.drawLeftPack = (data) => {
                 const dataArray2 = data.filter(x => x !== 0);
 
                 const dLen = dataArray2.length;
                 const half = t.playerSize * .5;
 
-                // drawLeft(degToRadi(perToDeg(.5)), `rgba(255, 255, 255, .3)`);
+                //왼쪽 기본
                 drawLeft(degToRadi(perToDeg(.5)), `#808080`);
 
                 let totalValue = 0;
@@ -744,6 +769,7 @@
 
                 dataArray2.forEach((el) => totalValue += el);
 
+                //왼쪽 수치에 따른 변경
                 drawLeft(degToRadi(perToDeg(totalValue / (totalCnt * 255) * .5)), `${t.rdmColor}${totalValue / (totalCnt * 255)})`);
 
                 function drawLeft(deg, color) {
@@ -761,7 +787,7 @@
                 }
             }
 
-            t.play = (per, data) => {
+            t.play = (per, data, curIdx) => {
                 t.ctx.beginPath();
                 t.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 clearRect();
@@ -769,7 +795,18 @@
                 t.drawProgress(per);
                 t.drawHandler(per);
                 t.drawCenter(per, data);
-                t.visualizer(data);
+                t.drawLeftPack(data);
+                t.progressList(per, curIdx);
+            }
+            
+            t.progressList = (per, curIdx) => {
+                const target = document.querySelector(`#audioList [data-idx="${curIdx}"] [data-id="progress"]`);
+                if(!target) return;
+
+                const len = target.getTotalLength();
+
+                // target.style.strokeDasharray = len;
+                target.style.strokeDashoffset = len * (1 - per);
             }
             
             constructor(param);
@@ -780,7 +817,6 @@
             t.audioList = [];
             t.curAudio;
             t.curIdx = 0;
-
 
             t.audioCtx;
             t.audioBuffers = [];
@@ -794,9 +830,11 @@
             t.raf;
             t.freeze = false;
             t.isPlaying = false;
-            t.forced = false;
 
             t.pausedTime = 0;
+
+            t.forcedTrack = false;
+            t.isContinue = false;   //일시정지 후 재생인지 아닌지 플래그
 
             function constructor(obj){
                 function settingTarget(){
@@ -861,7 +899,12 @@
                 return `${h ? h  + ':' : ''}${m ? m + ':' : ''}${s}`;
             }
 
-            t.new = (idx, curTime = 0, auto) => {
+            t.overClicked = false;
+            t.timeout;
+
+            t.new = (idx, curTime = 0) => {
+                if(t.overClicked) return;
+
                 window.cancelAnimationFrame(t.raf);
                 const thisAudio = t.audioList2[idx];
 
@@ -874,9 +917,16 @@
                 t.freeze = true;
 
                 if(t.source){
+                    t.forcedTrack = true;
                     t.source.stop();
+                    t.overClicked = true;
+                    t.timeout = window.setTimeout(() => {
+                        t.overClicked = false;
+                        t.forcedTrack = false;
+                        window.clearTimeout(t.timeout);
+                    }, 500)
                     t.isPlaying = false;
-                    // t.audioCtx.currentTime = 0;
+                    t.audioCtx.currentTime = 0;
                 }
 
                 if(!t.audioList2) return;
@@ -894,20 +944,29 @@
 
                 t.orgStartTime = t.audioCtx.currentTime;
 
-                t.source.start(0, auto === 'auto' ? t.pausedTime : curTime);
+                let startParam2;
+
+                if(!t.isContinue){
+                    startParam2 = t.curTime;
+                    t.pausedTime = 0;
+                }else{
+                    startParam2 = t.pausedTime;
+                    t.isContinue = false;
+                }
+                t.source.start(0, startParam2);
 
                 t.isPlaying = true;
 
                 t.source.onended = () => {
-                    if (t.forced){
-                        t.forced = false;
+                    if (t.forcedTrack){
+                        t.forcedTrack = false;
                         return;
                     }
                     t.isPlaying = false;
                     t.pausedTime = 0;
                     window.clearInterval(t.raf);
-                    t.new(++t.curIdx); // 다음 곡 재생
-                    t.forced = false;
+                    t.new(++t.curIdx, undefined); // 다음 곡 재생
+                    t.forcedTrack = false;
                 };
 
                 t.visualize();
@@ -947,7 +1006,7 @@
 
                     if(t.audioList2[t.curIdx]){
                         const duration = t.audioList2[t.curIdx].buffer.duration;
-                        param.fnc_playing(curTime / duration, t.curSoundData);
+                        param.fnc_playing(curTime / duration, t.curSoundData, t.curIdx);
                     }
                     t.analyser.getByteFrequencyData(t.curSoundData);
                 }
@@ -970,7 +1029,32 @@
 
             t.tmpl = obj => {
                 const li = document.createElement('li');
-                li.innerHTML = obj.name;
+                li.innerHTML = `
+                    <strong>${obj.name}</strong>
+                    <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 352 111">
+                            <path
+                                d="M 2.5 103.5 L 6.5 101.5 L 9.5 99.5 L 13.5 95.5 L 18.5 90.5 L 23.5 86.5 L 27.5 84.5 L 30.5 83.5 L 33.5 82.5 L 45.5 83.5 L 48.5 84.5 L 51.5 85.5 L 54.5 86.5 L 60.5 85.5 L 72.5 86.5 L 83.5 84.5 L 86.5 83.5 L 99.5 82.5 L 105.5 81.5 L 135.5 82.5 L 143.5 83.5 L 166.5 84.5 L 170.5 85.5 L 174.5 86.5 L 200.5 87.5 L 211.5 86.5 L 217.5 85.5 L 253.5 84.5 L 262.5 85.5 L 268.5 86.5 L 271.5 87.5 L 288.5 88.5 L 298.5 87.5 L 307.5 88.5 L 301.5 87.5 L 297.5 86.5 L 296.5 84.5 L 295.5 83.5 L 297.5 79.5 L 299.5 77.5 L 304.5 76.5 L 309.5 77.5 L 310.5 78.5 L 309.5 81.5 L 308.5 82.5 L 307.5 83.5 L 306.5 84.5 L 304.5 85.5 L 298.5 84.5 L 300.5 83.5 L 303.5 82.5 L 304.5 81.5 L 305.5 80.5 L 306.5 79.5 L 307.5 78.5 L 306.5 69.5 L 304.5 63.5 L 301.5 57.5 L 298.5 47.5 L 295.5 39.5 L 293.5 33.5 L 292.5 27.5 L 291.5 23.5 L 290.5 20.5 L 289.5 17.5 L 299.5 16.5 L 305.5 14.5 L 311.5 12.5 L 317.5 9.5 L 323.5 7.5 L 329.5 5.5 L 332.5 3.5 L 335.5 2.5 L 337.5 3.5 L 336.5 4.5 L 335.5 5.5 L 334.5 7.5 L 333.5 8.5 L 335.5 21.5 L 338.5 28.5 L 341.5 37.5 L 345.5 44.5 L 347.5 54.5 L 348.5 62.5 L 349.5 69.5 L 348.5 89.5 L 347.5 91.5 L 345.5 93.5 L 344.5 95.5 L 345.5 98.5 L 349.5 99.5 L 347.5 103.5 L 345.5 104.5 L 343.5 105.5 L 339.5 104.5 L 340.5 102.5 L 342.5 101.5 L 348.5 103.5 L 346.5 106.5 L 344.5 107.5 L 341.5 108.5 L 335.5 107.5 L 337.5 105.5 L 338.5 104.5 L 346.5 105.5 L 345.5 106.5 L 343.5 107.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="5"
+                                stroke="rgba(0, 0, 0, .2)"
+                                fill="none"
+                            />
+                            <path
+                                data-id="progress"
+                                d="M 2.5 103.5 L 6.5 101.5 L 9.5 99.5 L 13.5 95.5 L 18.5 90.5 L 23.5 86.5 L 27.5 84.5 L 30.5 83.5 L 33.5 82.5 L 45.5 83.5 L 48.5 84.5 L 51.5 85.5 L 54.5 86.5 L 60.5 85.5 L 72.5 86.5 L 83.5 84.5 L 86.5 83.5 L 99.5 82.5 L 105.5 81.5 L 135.5 82.5 L 143.5 83.5 L 166.5 84.5 L 170.5 85.5 L 174.5 86.5 L 200.5 87.5 L 211.5 86.5 L 217.5 85.5 L 253.5 84.5 L 262.5 85.5 L 268.5 86.5 L 271.5 87.5 L 288.5 88.5 L 298.5 87.5 L 307.5 88.5 L 301.5 87.5 L 297.5 86.5 L 296.5 84.5 L 295.5 83.5 L 297.5 79.5 L 299.5 77.5 L 304.5 76.5 L 309.5 77.5 L 310.5 78.5 L 309.5 81.5 L 308.5 82.5 L 307.5 83.5 L 306.5 84.5 L 304.5 85.5 L 298.5 84.5 L 300.5 83.5 L 303.5 82.5 L 304.5 81.5 L 305.5 80.5 L 306.5 79.5 L 307.5 78.5 L 306.5 69.5 L 304.5 63.5 L 301.5 57.5 L 298.5 47.5 L 295.5 39.5 L 293.5 33.5 L 292.5 27.5 L 291.5 23.5 L 290.5 20.5 L 289.5 17.5 L 299.5 16.5 L 305.5 14.5 L 311.5 12.5 L 317.5 9.5 L 323.5 7.5 L 329.5 5.5 L 332.5 3.5 L 335.5 2.5 L 337.5 3.5 L 336.5 4.5 L 335.5 5.5 L 334.5 7.5 L 333.5 8.5 L 335.5 21.5 L 338.5 28.5 L 341.5 37.5 L 345.5 44.5 L 347.5 54.5 L 348.5 62.5 L 349.5 69.5 L 348.5 89.5 L 347.5 91.5 L 345.5 93.5 L 344.5 95.5 L 345.5 98.5 L 349.5 99.5 L 347.5 103.5 L 345.5 104.5 L 343.5 105.5 L 339.5 104.5 L 340.5 102.5 L 342.5 101.5 L 348.5 103.5 L 346.5 106.5 L 344.5 107.5 L 341.5 108.5 L 335.5 107.5 L 337.5 105.5 L 338.5 104.5 L 346.5 105.5 L 345.5 106.5 L 343.5 107.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="5"
+                                stroke="#000"
+                                fill="none"
+                                stroke-dasharray="648.2455444335938"
+                                stroke-dashoffset="648.2455444335938";
+                            />
+                        </svg>
+                    </div>
+                `;
                 if(param.fnc_click && typeof param.fnc_click === 'function'){
                     li.onclick = () => param.fnc_click(+li.dataset.idx);
                 }
